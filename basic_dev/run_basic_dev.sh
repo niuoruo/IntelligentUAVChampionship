@@ -1,1 +1,1 @@
-docker run -it --net host --name basic_dev --rm  basic_dev
+docker run -it --net host --name basic_dev --rm -v $(pwd)/src:/basic_dev/src/ basic_dev

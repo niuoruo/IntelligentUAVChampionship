@@ -1,4 +1,4 @@
-FROM osrf/ros:noetic-desktop-full-focal
+FROM ghcr.io/irobot-algorithm/sentry_navigation/environment:latest
 ADD src /basic_dev/src/
 ADD setup.bash /
 
@@ -13,6 +13,6 @@ RUN apt update && apt install -y python3-catkin-tools ros-noetic-geographic-msgs
 ENV ROS_DISTRO noetic
 
 WORKDIR /basic_dev/
-RUN . /opt/ros/${ROS_DISTRO}/setup.sh && catkin_make --only-pkg-with-deps airsim_ros && . devel/setup.sh && catkin_make --only-pkg-with-deps basic_dev
+RUN . /opt/ros/${ROS_DISTRO}/setup.sh && ./src/livox_ros_driver2/build.sh ROS1 && catkin_make
 
-ENTRYPOINT [ "/setup.bash" ]
+# ENTRYPOINT [ "/setup.bash" ]

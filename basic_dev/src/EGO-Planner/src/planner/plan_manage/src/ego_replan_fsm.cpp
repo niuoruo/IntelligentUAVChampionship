@@ -475,8 +475,8 @@ namespace ego_planner
     LocalTrajData *info = &planner_manager_->traj_.local_traj;
     double t_cur = ros::Time::now().toSec() - info->start_time;
 
-    start_pt_ = info->traj.getPos(t_cur);
-    start_vel_ = info->traj.getVel(t_cur);
+    start_pt_ = odom_pos_;
+    start_vel_ = odom_vel_;
     start_acc_ = info->traj.getAcc(t_cur);
 
     bool success = callReboundReplan(false, false);
@@ -587,7 +587,7 @@ namespace ego_planner
 
     ROS_INFO("Received goal: %f, %f, %f", msg->goal[0], msg->goal[1], msg->goal[2]);
 
-    Eigen::Vector3d end_wp(msg->goal[0], msg->goal[1], msg->goal[2]);
+    Eigen::Vector3d end_wp(msg->goal[0], msg->goal[1], 4.0);
     if (planNextWaypoint(end_wp))
     {
       have_trigger_ = true;

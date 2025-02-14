@@ -1,7 +1,7 @@
 <launch>
-    <arg name="map_size_x" value="200.0"/>
-    <arg name="map_size_y" value="200.0"/>
-    <arg name="map_size_z" value=" 20.0"/>
+    <arg name="map_size_x" value="100.0"/>
+    <arg name="map_size_y" value="100.0"/>
+    <arg name="map_size_z" value="200.0"/>
     <arg name="odom_topic" value="Odometry" />
 
     <include file="$(find ego_planner)/launch/include/run_in_sim.xml">

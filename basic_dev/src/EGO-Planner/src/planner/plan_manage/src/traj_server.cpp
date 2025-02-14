@@ -130,18 +130,15 @@ std::pair<double, double> calculate_yaw(double t_cur, Eigen::Vector3d &pos, doub
   last_yaw_ = yaw_yawdot.first;
   last_yawdot_ = yaw_yawdot.second;
 
-  yaw_yawdot.second = yaw_temp;
-
   return yaw_yawdot;
 }
 
 void publish_cmd(Vector3d p, Vector3d v, Vector3d a, Vector3d j, double y, double yd)
 {
-
   cmd.twist.linear.x = v(0);  // x方向线速度(m/s)
-  cmd.twist.linear.y = v(1);  // y方向线速度(m/s)
-  cmd.twist.linear.z = v(2);  // z方向线速度(m/s)
-  cmd.twist.angular.z = yd;   // z方向角速度(yaw, deg)
+  cmd.twist.linear.y = -v(1);  // y方向线速度(m/s)
+  cmd.twist.linear.z = -v(2);  // z方向线速度(m/s)
+  cmd.twist.angular.z = -yd;   // z方向角速度(yaw, deg)
 
   // cmd.position.x = p(0);
   // cmd.position.y = p(1);
@@ -198,6 +195,15 @@ void cmdCallback(const ros::TimerEvent &e)
     vel = traj_->getVel(t_cur);
     acc = traj_->getAcc(t_cur);
     jer = traj_->getJer(t_cur);
+
+    double cos_yaw = cos(last_yaw_);
+    double sin_yaw = sin(last_yaw_);
+    Eigen::Vector3d vel_drone;
+    vel_drone(0) = cos_yaw * vel(0) + sin_yaw * vel(1);
+    vel_drone(1) = -sin_yaw * vel(0) + cos_yaw * vel(1);
+    vel_drone(2) = vel(2);
+
+    vel = vel_drone;
 
     /*** calculate yaw ***/
     yaw_yawdot = calculate_yaw(t_cur, pos, (time_now - time_last).toSec());

@@ -343,6 +343,45 @@ void ImuProcess::UndistortPcl(const MeasureGroup &meas, esekfom::esekf<state_ikf
           }
       }
   }
+  else
+  {
+      auto it_pcl = pcl_out.points.end() - 1;
+      auto time = pcl_end_time - pcl_beg_time;
+      for (auto it_kp = IMUpose.end() - 1; it_kp != IMUpose.begin(); it_kp--)
+      {
+          std::cout << "it_pcl->curvature: " << it_pcl->curvature << std::endl;
+          auto head = it_kp - 1;
+          auto tail = it_kp;
+          R_imu<<MAT_FROM_ARRAY(head->rot);
+          // cout<<"head imu acc: "<<acc_imu.transpose()<<endl;
+          vel_imu<<VEC_FROM_ARRAY(head->vel);
+          pos_imu<<VEC_FROM_ARRAY(head->pos);
+          acc_imu<<VEC_FROM_ARRAY(tail->acc);
+          angvel_avr<<VEC_FROM_ARRAY(tail->gyr);
+
+          for(; (it_pcl->curvature / double(1000)) * time > head->offset_time; it_pcl --)
+          {
+              dt = it_pcl->curvature / double(1000) * time - head->offset_time;
+
+              /* Transform to the 'end' frame, using only the rotation
+               * Note: Compensation direction is INVERSE of Frame's moving direction
+               * So if we want to compensate a point at timestamp-i to the frame-e
+               * P_compensate = R_imu_e ^ T * (R_i * P_i + T_ei) where T_ei is represented in global frame */
+              M3D R_i(R_imu * Exp(angvel_avr, dt));
+
+              V3D P_i(it_pcl->x, it_pcl->y, it_pcl->z);
+              V3D T_ei(pos_imu + vel_imu * dt + 0.5 * acc_imu * dt * dt - imu_state.pos);
+              V3D P_compensate = imu_state.offset_R_L_I.conjugate() * (imu_state.rot.conjugate() * (R_i * (imu_state.offset_R_L_I * P_i + imu_state.offset_T_L_I) + T_ei) - imu_state.offset_T_L_I);// not accurate!
+
+              // save Undistorted points and their rotation
+              it_pcl->x = P_compensate(0);
+              it_pcl->y = P_compensate(1);
+              it_pcl->z = P_compensate(2);
+
+              if (it_pcl == pcl_out.points.begin()) break;
+          }
+      }
+  }
 }
 
 void ImuProcess::Process(const MeasureGroup &meas,  esekfom::esekf<state_ikfom, 12, input_ikfom> &kf_state, PointCloudXYZI::Ptr cur_pcl_un_)

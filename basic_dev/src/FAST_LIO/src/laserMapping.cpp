@@ -101,6 +101,8 @@ vector<BoxPointType> cub_needrm;
 vector<PointVector>  Nearest_Points; 
 vector<double>       extrinT(3, 0.0);
 vector<double>       extrinR(9, 0.0);
+vector<double>       extrinT_IMU_BOT(3, 0.0);
+vector<double>       extrinR_IMU_BOT(9, 0.0);
 deque<double>                     time_buffer;
 deque<PointCloudXYZI::Ptr>        lidar_buffer;
 deque<sensor_msgs::Imu::ConstPtr> imu_buffer;
@@ -125,6 +127,10 @@ V3D euler_cur;
 V3D position_last(Zero3d);
 V3D Lidar_T_wrt_IMU(Zero3d);
 M3D Lidar_R_wrt_IMU(Eye3d);
+V3D IMU_T_wrt_BOT(Zero3d);
+M3D IMU_R_wrt_BOT(Eye3d);
+V3D BOT_T_wrt_IMU(Zero3d);
+M3D BOT_R_wrt_IMU(Eye3d);
 
 /*** EKF inputs and output ***/
 MeasureGroup Measures;
@@ -186,6 +192,18 @@ void pointBodyToWorld(PointType const * const pi, PointType * const po)
     po->intensity = pi->intensity;
 }
 
+void pointBodyToMap(PointType const * const pi, PointType * const po)
+{
+    V3D p_body(pi->x, pi->y, pi->z);
+    V3D p_global(BOT_R_wrt_IMU * (state_point.rot * (state_point.offset_R_L_I*p_body + state_point.offset_T_L_I) + 
+                         state_point.pos) + BOT_T_wrt_IMU);
+
+    po->x = p_global(0);
+    po->y = p_global(1);
+    po->z = p_global(2);
+    po->intensity = pi->intensity;
+}
+
 template<typename T>
 void pointBodyToWorld(const Matrix<T, 3, 1> &pi, Matrix<T, 3, 1> &po)
 {
@@ -197,10 +215,34 @@ void pointBodyToWorld(const Matrix<T, 3, 1> &pi, Matrix<T, 3, 1> &po)
     po[2] = p_global(2);
 }
 
+template<typename T>
+void pointBodyToMap(const Matrix<T, 3, 1> &pi, Matrix<T, 3, 1> &po)
+{
+    V3D p_body(pi[0], pi[1], pi[2]);
+    V3D p_global(BOT_R_wrt_IMU * (state_point.rot * (state_point.offset_R_L_I*p_body + state_point.offset_T_L_I) + 
+                 state_point.pos) + BOT_T_wrt_IMU);
+
+    po[0] = p_global(0);
+    po[1] = p_global(1);
+    po[2] = p_global(2);
+}
+
 void RGBpointBodyToWorld(PointType const * const pi, PointType * const po)
 {
     V3D p_body(pi->x, pi->y, pi->z);
     V3D p_global(state_point.rot * (state_point.offset_R_L_I*p_body + state_point.offset_T_L_I) + state_point.pos);
+
+    po->x = p_global(0);
+    po->y = p_global(1);
+    po->z = p_global(2);
+    po->intensity = pi->intensity;
+}
+
+void RGBpointBodyToMap(PointType const * const pi, PointType * const po)
+{
+    V3D p_body(pi->x, pi->y, pi->z);
+    V3D p_global(BOT_R_wrt_IMU * (state_point.rot * (state_point.offset_R_L_I*p_body + state_point.offset_T_L_I) + 
+                 state_point.pos) + BOT_T_wrt_IMU);
 
     po->x = p_global(0);
     po->y = p_global(1);
@@ -338,11 +380,6 @@ void imu_cbk(const sensor_msgs::Imu::ConstPtr &msg_in)
     publish_count ++;
     // cout<<"IMU got at: "<<msg_in->header.stamp.toSec()<<endl;
     sensor_msgs::Imu::Ptr msg(new sensor_msgs::Imu(*msg_in));
-
-    msg->angular_velocity.y = -msg->angular_velocity.y;
-    msg->angular_velocity.z = -msg->angular_velocity.z;
-    msg->linear_acceleration.y = -msg->linear_acceleration.y;
-    msg->linear_acceleration.z = -msg->linear_acceleration.z;
 
     msg->header.stamp = ros::Time().fromSec(msg_in->header.stamp.toSec() - time_diff_lidar_to_imu);
     if (abs(timediff_lidar_wrt_imu) > 0.1 && time_sync_en)
@@ -491,7 +528,7 @@ void publish_frame_world(const ros::Publisher & pubLaserCloudFull)
 
         for (int i = 0; i < size; i++)
         {
-            RGBpointBodyToWorld(&laserCloudFullRes->points[i], \
+            RGBpointBodyToMap(&laserCloudFullRes->points[i], \
                                 &laserCloudWorld->points[i]);
         }
 
@@ -514,7 +551,7 @@ void publish_frame_world(const ros::Publisher & pubLaserCloudFull)
 
         for (int i = 0; i < size; i++)
         {
-            RGBpointBodyToWorld(&feats_undistort->points[i], \
+            RGBpointBodyToMap(&feats_undistort->points[i], \
                                 &laserCloudWorld->points[i]);
         }
         *pcl_wait_save += *laserCloudWorld;
@@ -559,7 +596,7 @@ void publish_effect_world(const ros::Publisher & pubLaserCloudEffect)
                     new PointCloudXYZI(effct_feat_num, 1));
     for (int i = 0; i < effct_feat_num; i++)
     {
-        RGBpointBodyToWorld(&laserCloudOri->points[i], \
+        RGBpointBodyToMap(&laserCloudOri->points[i], \
                             &laserCloudWorld->points[i]);
     }
     sensor_msgs::PointCloud2 laserCloudFullRes3;
@@ -581,22 +618,49 @@ void publish_map(const ros::Publisher & pubLaserCloudMap)
 template<typename T>
 void set_posestamp(T & out)
 {
-    out.pose.position.x = state_point.pos(0);
-    out.pose.position.y = state_point.pos(1);
-    out.pose.position.z = state_point.pos(2);
-    out.pose.orientation.x = geoQuat.x;
-    out.pose.orientation.y = geoQuat.y;
-    out.pose.orientation.z = geoQuat.z;
-    out.pose.orientation.w = geoQuat.w;
-    
+    // R
+    Eigen::Quaterniond eigen_quat(geoQuat.w, 
+                                  geoQuat.x, 
+                                  geoQuat.y, 
+                                  geoQuat.z);
+    M3D init_R_lidar = eigen_quat.toRotationMatrix();
+    M3D MAP_R_BOT = BOT_R_wrt_IMU * init_R_lidar * IMU_R_wrt_BOT;
+
+    // 转换为tf与odom
+    Eigen::Quaterniond q(MAP_R_BOT);
+    tf::Quaternion tf_q(q.x(), q.y(), q.z(), q.w());
+    tf::quaternionTFToMsg(tf_q, out.pose.orientation);
+
+    // T
+    V3D init_T_lidar(state_point.pos(0), 
+                             state_point.pos(1), 
+                             state_point.pos(2));
+    V3D MAP_T_lidar(BOT_R_wrt_IMU * init_T_lidar + BOT_T_wrt_IMU);
+    V3D MAP_T_BOT(MAP_T_lidar - MAP_R_BOT * BOT_T_wrt_IMU);
+
+    out.pose.position.x = MAP_T_BOT(0);
+    out.pose.position.y = MAP_T_BOT(1);
+    out.pose.position.z = MAP_T_BOT(2);
 }
 
 template<typename T>
 void set_velstamp(T & out)
 {
-    out.twist.linear.x = state_point.vel(0);
-    out.twist.linear.y = state_point.vel(1);
-    out.twist.linear.z = state_point.vel(2);
+    Eigen::Quaterniond eigen_quat(geoQuat.w, 
+                                  geoQuat.x, 
+                                  geoQuat.y, 
+                                  geoQuat.z);
+    M3D init_R_lidar = eigen_quat.toRotationMatrix();
+    M3D MAP_R_BOT = BOT_R_wrt_IMU * init_R_lidar * IMU_R_wrt_BOT;
+    V3D init_T_lidar(state_point.vel(0), 
+                             state_point.vel(1), 
+                             state_point.vel(2));
+    V3D MAP_T_lidar(BOT_R_wrt_IMU * init_T_lidar + BOT_T_wrt_IMU);
+    V3D MAP_T_BOT(MAP_T_lidar - MAP_R_BOT * BOT_T_wrt_IMU);
+
+    out.twist.linear.x = MAP_T_BOT(0);
+    out.twist.linear.y = MAP_T_BOT(1);
+    out.twist.linear.z = MAP_T_BOT(2);
 }
 
 void publish_odometry(const ros::Publisher & pubOdomAftMapped)
@@ -805,6 +869,8 @@ int main(int argc, char** argv)
     nh.param<int>("pcd_save/interval", pcd_save_interval, -1);
     nh.param<vector<double>>("mapping/extrinsic_T", extrinT, vector<double>());
     nh.param<vector<double>>("mapping/extrinsic_R", extrinR, vector<double>());
+    nh.param<std::vector<double>>("irobot/extrinsic_T", extrinT_IMU_BOT, std::vector<double>());
+    nh.param<std::vector<double>>("irobot/extrinsic_R", extrinR_IMU_BOT, std::vector<double>());
 
     p_pre->lidar_type = lidar_type;
     cout<<"p_pre->lidar_type "<<p_pre->lidar_type<<endl;
@@ -831,6 +897,13 @@ int main(int argc, char** argv)
 
     Lidar_T_wrt_IMU<<VEC_FROM_ARRAY(extrinT);
     Lidar_R_wrt_IMU<<MAT_FROM_ARRAY(extrinR);
+    
+    // 初始变换矩阵
+    IMU_T_wrt_BOT<<VEC_FROM_ARRAY(extrinT_IMU_BOT);
+    IMU_R_wrt_BOT<<MAT_FROM_ARRAY(extrinR_IMU_BOT);
+    BOT_T_wrt_IMU = -IMU_T_wrt_BOT;
+    BOT_R_wrt_IMU = IMU_R_wrt_BOT.inverse();
+
     p_imu->set_extrinsic(Lidar_T_wrt_IMU, Lidar_R_wrt_IMU);
     p_imu->set_gyr_cov(V3D(gyr_cov, gyr_cov, gyr_cov));
     p_imu->set_acc_cov(V3D(acc_cov, acc_cov, acc_cov));

@@ -190,7 +190,7 @@ namespace ego_planner
         wpt_id_++;
         planNextWaypoint(wps_[wpt_id_]);
       }
-      else if ((t_cur > info->duration - 1e-2) && touch_the_goal) // case 3: the final waypoint reached
+      else if (touch_the_goal) // case 3: the final waypoint reached
       {
         have_target_ = false;
         have_trigger_ = false;
@@ -587,7 +587,7 @@ namespace ego_planner
 
     ROS_INFO("Received goal: %f, %f, %f", msg->goal[0], msg->goal[1], msg->goal[2]);
 
-    Eigen::Vector3d end_wp(msg->goal[0], msg->goal[1], 4.0);
+    Eigen::Vector3d end_wp(msg->goal[0], msg->goal[1], msg->goal[2]);
     if (planNextWaypoint(end_wp))
     {
       have_trigger_ = true;

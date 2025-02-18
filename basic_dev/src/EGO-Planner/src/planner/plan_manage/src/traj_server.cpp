@@ -5,6 +5,7 @@
 #include <std_msgs/Empty.h>
 #include <visualization_msgs/Marker.h>
 #include <ros/ros.h>
+#include <tf/transform_datatypes.h>
 #include "airsim_ros/VelCmd.h"
 #include "airsim_ros/PoseCmd.h"
 
@@ -22,13 +23,15 @@ airsim_ros::VelCmd cmd;
 bool receive_traj_ = false;
 boost::shared_ptr<poly_traj::Trajectory> traj_;
 double traj_duration_;
+double traj_time_;
 ros::Time start_time_;
 int traj_id_;
 ros::Time heartbeat_time_(0);
 Eigen::Vector3d last_pos_;
+nav_msgs::Odometry odom_;
 
 // yaw control
-double last_yaw_, last_yawdot_, slowly_flip_yaw_target_, slowly_turn_to_center_target_;
+double yaw_, last_yawdot_, slowly_flip_yaw_target_, slowly_turn_to_center_target_;
 double time_forward_;
 
 void heartbeatCallback(std_msgs::EmptyPtr msg)
@@ -69,6 +72,7 @@ void polyTrajCallback(traj_utils::PolyTrajPtr msg)
 
   start_time_ = msg->start_time;
   traj_duration_ = traj_->getTotalDuration();
+  traj_time_ = 0;
   traj_id_ = msg->traj_id;
 
   receive_traj_ = true;
@@ -85,10 +89,10 @@ std::pair<double, double> calculate_yaw(double t_cur, Eigen::Vector3d &pos, doub
                             : traj_->getPos(traj_duration_) - pos;
   double yaw_temp = dir.norm() > 0.1
                         ? atan2(dir(1), dir(0))
-                        : last_yaw_;
+                        : yaw_;
 
   double yawdot = 0;
-  double d_yaw = yaw_temp - last_yaw_;
+  double d_yaw = yaw_temp - yaw_;
   if (d_yaw >= M_PI)
   {
     d_yaw -= 2 * M_PI;
@@ -119,15 +123,14 @@ std::pair<double, double> calculate_yaw(double t_cur, Eigen::Vector3d &pos, doub
   }
   yawdot = d_yaw / dt;
 
-  double yaw = last_yaw_ + d_yaw;
+  double yaw = yaw_ + d_yaw;
   if (yaw > M_PI)
     yaw -= 2 * M_PI;
   if (yaw < -M_PI)
     yaw += 2 * M_PI;
-  yaw_yawdot.first = yaw;
+  yaw_yawdot.first = yaw_temp;
   yaw_yawdot.second = yawdot;
 
-  last_yaw_ = yaw_yawdot.first;
   last_yawdot_ = yaw_yawdot.second;
 
   return yaw_yawdot;
@@ -159,6 +162,21 @@ void publish_cmd(Vector3d p, Vector3d v, Vector3d a, Vector3d j, double y, doubl
   last_pos_ = p;
 }
 
+void odometryCallback(const nav_msgs::OdometryConstPtr &msg)
+{
+  odom_ = *msg;
+
+  tf::Quaternion q(
+    odom_.pose.pose.orientation.x,
+    odom_.pose.pose.orientation.y,
+    odom_.pose.pose.orientation.z,
+    odom_.pose.pose.orientation.w);
+  tf::Matrix3x3 m(q);
+  double roll, pitch, yaw;
+  m.getRPY(roll, pitch, yaw);
+  yaw_ = yaw;
+}
+
 void cmdCallback(const ros::TimerEvent &e)
 {
   /* no publishing before receive traj_ and have heartbeat */
@@ -177,7 +195,7 @@ void cmdCallback(const ros::TimerEvent &e)
     ROS_ERROR("[traj_server] Lost heartbeat from the planner, is it dead?");
 
     receive_traj_ = false;
-    publish_cmd(last_pos_, Vector3d::Zero(), Vector3d::Zero(), Vector3d::Zero(), last_yaw_, 0);
+    publish_cmd(last_pos_, Vector3d::Zero(), Vector3d::Zero(), Vector3d::Zero(), yaw_, 0);
   }
 
   double t_cur = (time_now - start_time_).toSec();
@@ -186,134 +204,62 @@ void cmdCallback(const ros::TimerEvent &e)
   std::pair<double, double> yaw_yawdot(0, 0);
 
   static ros::Time time_last = ros::Time::now();
-#if FLIP_YAW_AT_END or TURN_YAW_TO_CENTER_AT_END
-  static bool finished = false;
-#endif
+/*
+
+  // Get current position from odometry
+  Eigen::Vector3d current_pos(odom_.pose.pose.position.x, odom_.pose.pose.position.y, odom_.pose.pose.position.z);
+
+  // PID gains
+  static double kp = 1.0, ki = 0.0, kd = 0.1;
+  static Eigen::Vector3d integral_error = Eigen::Vector3d::Zero();
+  static Eigen::Vector3d last_error = Eigen::Vector3d::Zero();
+
+  // Find the closest point on the trajectory
+  for (; traj_time_ <= traj_duration_; traj_time_ += 0.1)
+  {
+    pos = traj_->getPos(traj_time_);
+    double dist = (pos - current_pos).norm();
+    if (dist > 0.1)
+      break;
+  }
+
+  // PID control
+  Eigen::Vector3d error = pos - current_pos;
+  integral_error += error * (time_now - time_last).toSec();
+  Eigen::Vector3d derivative_error = (error - last_error) / (time_now - time_last).toSec();
+  vel = kp * error + ki * integral_error + kd * derivative_error;
+*/
+
   if (t_cur < traj_duration_ && t_cur >= 0.0)
   {
     pos = traj_->getPos(t_cur);
     vel = traj_->getVel(t_cur);
     acc = traj_->getAcc(t_cur);
     jer = traj_->getJer(t_cur);
+  }
 
-    double cos_yaw = cos(last_yaw_);
-    double sin_yaw = sin(last_yaw_);
-    Eigen::Vector3d vel_drone;
-    vel_drone(0) = cos_yaw * vel(0) + sin_yaw * vel(1);
-    vel_drone(1) = -sin_yaw * vel(0) + cos_yaw * vel(1);
-    vel_drone(2) = vel(2);
 
-    vel = vel_drone;
+  // Calculate yaw
+  yaw_yawdot = calculate_yaw(t_cur, pos, (time_now - time_last).toSec());
+  yaw_yawdot.second = 0.0;
 
-    /*** calculate yaw ***/
-    yaw_yawdot = calculate_yaw(t_cur, pos, (time_now - time_last).toSec());
-    /*** calculate yaw ***/
+  double cos_yaw = cos(yaw_);
+  double sin_yaw = sin(yaw_);
+  Eigen::Vector3d vel_drone;
+  vel_drone(0) = cos_yaw * vel(0) + sin_yaw * vel(1);
+  vel_drone(1) = -sin_yaw * vel(0) + cos_yaw * vel(1);
+  vel_drone(2) = vel(2);
 
-    time_last = time_now;
-    last_yaw_ = yaw_yawdot.first;
-    last_pos_ = pos;
+  vel = vel_drone;
 
-    slowly_flip_yaw_target_ = yaw_yawdot.first + M_PI;
-    if (slowly_flip_yaw_target_ > M_PI)
-      slowly_flip_yaw_target_ -= 2 * M_PI;
-    if (slowly_flip_yaw_target_ < -M_PI)
-      slowly_flip_yaw_target_ += 2 * M_PI;
-    constexpr double CENTER[2] = {0.0, 0.0};
-    slowly_turn_to_center_target_ = atan2(CENTER[1] - pos(1), CENTER[0] - pos(0));
+  /*** calculate yaw ***/
+  yaw_yawdot = calculate_yaw(t_cur, pos, (time_now - time_last).toSec());
+  // Update last values
+  time_last = time_now;
+  last_pos_ = pos;
 
     // publish
     publish_cmd(pos, vel, acc, jer, yaw_yawdot.first, yaw_yawdot.second);
-#if FLIP_YAW_AT_END or TURN_YAW_TO_CENTER_AT_END
-    finished = false;
-#endif
-  }
-
-#if FLIP_YAW_AT_END
-  else if (t_cur >= traj_duration_)
-  {
-    if (finished)
-      return;
-
-    /* hover when finished traj_ */
-    pos = traj_->getPos(traj_duration_);
-    vel.setZero();
-    acc.setZero();
-    jer.setZero();
-
-    if (slowly_flip_yaw_target_ > 0)
-    {
-      last_yaw_ += (time_now - time_last).toSec() * M_PI / 2;
-      yaw_yawdot.second = M_PI / 2;
-      if (last_yaw_ >= slowly_flip_yaw_target_)
-      {
-        finished = true;
-      }
-    }
-    else
-    {
-      last_yaw_ -= (time_now - time_last).toSec() * M_PI / 2;
-      yaw_yawdot.second = -M_PI / 2;
-      if (last_yaw_ <= slowly_flip_yaw_target_)
-      {
-        finished = true;
-      }
-    }
-
-    yaw_yawdot.first = last_yaw_;
-    time_last = time_now;
-
-    publish_cmd(pos, vel, acc, jer, yaw_yawdot.first, yaw_yawdot.second);
-  }
-#endif
-
-#if TURN_YAW_TO_CENTER_AT_END
-  else if (t_cur >= traj_duration_)
-  {
-    if (finished)
-      return;
-
-    /* hover when finished traj_ */
-    pos = traj_->getPos(traj_duration_);
-    vel.setZero();
-    acc.setZero();
-    jer.setZero();
-
-    double d_yaw = last_yaw_ - slowly_turn_to_center_target_;
-    if (d_yaw >= M_PI)
-    {
-      last_yaw_ += (time_now - time_last).toSec() * M_PI / 2;
-      yaw_yawdot.second = M_PI / 2;
-      if (last_yaw_ > M_PI)
-        last_yaw_ -= 2 * M_PI;
-    }
-    else if (d_yaw <= -M_PI)
-    {
-      last_yaw_ -= (time_now - time_last).toSec() * M_PI / 2;
-      yaw_yawdot.second = -M_PI / 2;
-      if (last_yaw_ < -M_PI)
-        last_yaw_ += 2 * M_PI;
-    }
-    else if (d_yaw >= 0)
-    {
-      last_yaw_ -= (time_now - time_last).toSec() * M_PI / 2;
-      yaw_yawdot.second = -M_PI / 2;
-      if (last_yaw_ <= slowly_turn_to_center_target_)
-        finished = true;
-    }
-    else
-    {
-      last_yaw_ += (time_now - time_last).toSec() * M_PI / 2;
-      yaw_yawdot.second = M_PI / 2;
-      if (last_yaw_ >= slowly_turn_to_center_target_)
-        finished = true;
-    }
-
-    yaw_yawdot.first = last_yaw_;
-    time_last = time_now;
-
-    publish_cmd(pos, vel, acc, jer, yaw_yawdot.first, yaw_yawdot.second);
-  }
-#endif
 }
 
 int main(int argc, char **argv)
@@ -324,13 +270,14 @@ int main(int argc, char **argv)
 
   ros::Subscriber poly_traj_sub = nh.subscribe("planning/trajectory", 10, polyTrajCallback);
   ros::Subscriber heartbeat_sub = nh.subscribe("heartbeat", 10, heartbeatCallback);
+  ros::Subscriber odomtry_sub = nh.subscribe("/Odometry", 10, odometryCallback);
 
   pos_cmd_pub = nh.advertise<airsim_ros::VelCmd>("/airsim_node/drone_1/vel_cmd_body_frame", 50);
 
   ros::Timer cmd_timer = nh.createTimer(ros::Duration(0.01), cmdCallback);
 
   nh.param("traj_server/time_forward", time_forward_, -1.0);
-  last_yaw_ = 0.0;
+  yaw_ = 0.0;
   last_yawdot_ = 0.0;
 
   ros::Duration(1.0).sleep();

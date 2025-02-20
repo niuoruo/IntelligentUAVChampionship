@@ -702,8 +702,10 @@ void GridMap::initMapBoundary()
   mp_.have_initialized_ = true;
 
   md_.center_last3i_ = pos2GlobalIdx(md_.camera_pos_);
+  std::cout << "center_last3i_: " << md_.center_last3i_.transpose() << std::endl;
 
   md_.ringbuffer_lowbound3i_ = md_.center_last3i_ - mp_.local_update_range3i_;
+  std::cout << "ringbuffer_lowbound3i_: " << md_.ringbuffer_lowbound3i_.transpose() << std::endl;
   md_.ringbuffer_lowbound3d_ = md_.ringbuffer_lowbound3i_.cast<double>() * mp_.resolution_;
   md_.ringbuffer_upbound3i_ = md_.center_last3i_ + mp_.local_update_range3i_;
   md_.ringbuffer_upbound3d_ = md_.ringbuffer_upbound3i_.cast<double>() * mp_.resolution_;

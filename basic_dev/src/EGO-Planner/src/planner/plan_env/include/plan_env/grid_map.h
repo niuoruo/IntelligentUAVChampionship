@@ -439,6 +439,9 @@ inline bool GridMap::isInBuf(const Eigen::Vector3i &idx)
 
 inline bool GridMap::isInInfBuf(const Eigen::Vector3d &pos)
 {
+  std::cout << "pos=" << pos.transpose() << std::endl;
+  std::cout << "min=" << md_.ringbuffer_inf_lowbound3d_.transpose() << std::endl;
+  std::cout << "max=" << md_.ringbuffer_inf_upbound3d_.transpose() << std::endl;
   if (pos(0) < md_.ringbuffer_inf_lowbound3d_(0) || pos(1) < md_.ringbuffer_inf_lowbound3d_(1) || pos(2) < md_.ringbuffer_inf_lowbound3d_(2))
   {
     return false;

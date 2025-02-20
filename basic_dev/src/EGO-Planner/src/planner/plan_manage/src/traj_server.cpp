@@ -80,13 +80,47 @@ void polyTrajCallback(traj_utils::PolyTrajPtr msg)
 
 std::pair<double, double> calculate_yaw(double t_cur, Eigen::Vector3d &pos, double dt)
 {
-  constexpr double YAW_DOT_MAX_PER_SEC = 2 * M_PI;
-  constexpr double YAW_DOT_DOT_MAX_PER_SEC = 5 * M_PI;
+  constexpr double YAW_DOT_MAX_PER_SEC = M_PI / 2.0;
+  constexpr double YAW_DOT_DOT_MAX_PER_SEC = M_PI / 2.0;
   std::pair<double, double> yaw_yawdot(0, 0);
 
   Eigen::Vector3d dir = t_cur + time_forward_ <= traj_duration_
                             ? traj_->getPos(t_cur + time_forward_) - pos
                             : traj_->getPos(traj_duration_) - pos;
+
+  // Create and publish visualization marker
+  static ros::Publisher marker_pub = ros::NodeHandle().advertise<visualization_msgs::Marker>("future_position", 10);
+  visualization_msgs::Marker marker;
+  marker.header.frame_id = "map";
+  marker.header.stamp = ros::Time::now();
+  marker.type = visualization_msgs::Marker::SPHERE;
+  marker.action = visualization_msgs::Marker::ADD;
+  marker.pose.orientation.x = 0;
+  marker.pose.orientation.y = 0; 
+  marker.pose.orientation.z = 0;
+  marker.pose.orientation.w = 1;
+  if (t_cur + time_forward_ <= traj_duration_)
+  {
+    marker.pose.position.x = traj_->getPos(t_cur + time_forward_)(0);
+    marker.pose.position.y = traj_->getPos(t_cur + time_forward_)(1);
+    marker.pose.position.z = traj_->getPos(t_cur + time_forward_)(2);
+  }
+  else
+  {
+    marker.pose.position.x = traj_->getPos(traj_duration_)(0);
+    marker.pose.position.y = traj_->getPos(traj_duration_)(1);
+    marker.pose.position.z = traj_->getPos(traj_duration_)(2);
+  }
+
+  marker.scale.x = 0.2;
+  marker.scale.y = 0.2;
+  marker.scale.z = 0.2;
+  marker.color.r = 1.0;
+  marker.color.g = 0.0;
+  marker.color.b = 0.0;
+  marker.color.a = 1.0;
+  marker_pub.publish(marker);
+  
   double yaw_temp = dir.norm() > 0.1
                         ? atan2(dir(1), dir(0))
                         : yaw_;
@@ -138,26 +172,44 @@ std::pair<double, double> calculate_yaw(double t_cur, Eigen::Vector3d &pos, doub
 
 void publish_cmd(Vector3d p, Vector3d v, Vector3d a, Vector3d j, double y, double yd)
 {
+  // Publish velocity command
   cmd.twist.linear.x = v(0);  // x方向线速度(m/s)
   cmd.twist.linear.y = -v(1);  // y方向线速度(m/s)
   cmd.twist.linear.z = -v(2);  // z方向线速度(m/s)
   cmd.twist.angular.z = -yd;   // z方向角速度(yaw, deg)
-
-  // cmd.position.x = p(0);
-  // cmd.position.y = p(1);
-  // cmd.position.z = p(2);
-  // cmd.velocity.x = v(0);
-  // cmd.velocity.y = v(1);
-  // cmd.velocity.z = v(2);
-  // cmd.acceleration.x = a(0);
-  // cmd.acceleration.y = a(1);
-  // cmd.acceleration.z = a(2);
-  // cmd.jerk.x = j(0);
-  // cmd.jerk.y = j(1);
-  // cmd.jerk.z = j(2);
-  // cmd.yaw = y;
-  // cmd.yaw_dot = yd;
   pos_cmd_pub.publish(cmd);
+
+  // Publish velocity vectors for visualization
+  static ros::Publisher vel_vis_pub = ros::NodeHandle().advertise<visualization_msgs::Marker>("/velocity_vector", 10);
+  visualization_msgs::Marker marker;
+  marker.header.frame_id = "map";
+  marker.header.stamp = ros::Time::now();
+  marker.type = visualization_msgs::Marker::ARROW;
+  marker.action = visualization_msgs::Marker::ADD;
+  
+  // Start point of arrow (current position)
+  marker.points.push_back(geometry_msgs::Point());
+  marker.points[0].x = odom_.pose.pose.position.x;
+  marker.points[0].y = odom_.pose.pose.position.y;
+  marker.points[0].z = odom_.pose.pose.position.z;
+  
+  // End point of arrow (velocity vector)
+  marker.points.push_back(geometry_msgs::Point());
+  marker.points[1].x = odom_.pose.pose.position.x + v(0) * 10;
+  marker.points[1].y = odom_.pose.pose.position.y + v(1) * 10;
+  marker.points[1].z = odom_.pose.pose.position.z + v(2) * 10;
+  
+  // Arrow properties
+  marker.scale.x = 0.1;  // shaft diameter
+  marker.scale.y = 0.2;  // head diameter
+  marker.scale.z = 0.2;  // head length
+  
+  marker.color.r = 0.0;
+  marker.color.g = 1.0;
+  marker.color.b = 0.0;
+  marker.color.a = 1.0;
+  
+  vel_vis_pub.publish(marker);
 
   last_pos_ = p;
 }

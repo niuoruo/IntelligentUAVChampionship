@@ -92,7 +92,7 @@ double cube_len = 0, HALF_FOV_COS = 0, FOV_DEG = 0, total_distance = 0, lidar_en
 int    effct_feat_num = 0, time_log_counter = 0, scan_count = 0, publish_count = 0;
 int    iterCount = 0, feats_down_size = 0, NUM_MAX_ITERATIONS = 0, laserCloudValidNum = 0, pcd_save_interval = -1, pcd_index = 0;
 bool   point_selected_surf[100000] = {0};
-bool   lidar_pushed, flg_first_scan = true, flg_exit = false, flg_EKF_inited;
+bool   lidar_pushed, flg_first_ekf = false, flg_first_scan = true, flg_exit = false, flg_EKF_inited;
 bool   scan_pub_en = false, dense_pub_en = false, scan_body_pub_en = false;
 int lidar_type;
 
@@ -106,6 +106,8 @@ vector<double>       extrinR_IMU_BOT(9, 0.0);
 deque<double>                     time_buffer;
 deque<PointCloudXYZI::Ptr>        lidar_buffer;
 deque<sensor_msgs::Imu::ConstPtr> imu_buffer;
+deque<sensor_msgs::Imu::ConstPtr> realtime_imu_buffer;
+sensor_msgs::Imu::Ptr last_imu_ptr;
 
 PointCloudXYZI::Ptr featsFromMap(new PointCloudXYZI());
 PointCloudXYZI::Ptr feats_undistort(new PointCloudXYZI());
@@ -136,11 +138,11 @@ M3D BOT_R_wrt_IMU(Eye3d);
 MeasureGroup Measures;
 esekfom::esekf<state_ikfom, 12, input_ikfom> kf;
 state_ikfom state_point;
+state_ikfom realtime_state_point;
 vect3 pos_lid;
 
 nav_msgs::Path path;
 nav_msgs::Odometry odomAftMapped;
-geometry_msgs::Quaternion geoQuat;
 geometry_msgs::PoseStamped msg_body_pose;
 
 shared_ptr<Preprocess> p_pre(new Preprocess());
@@ -396,11 +398,13 @@ void imu_cbk(const sensor_msgs::Imu::ConstPtr &msg_in)
     {
         ROS_WARN("imu loop back, clear buffer");
         imu_buffer.clear();
+        realtime_imu_buffer.clear();
     }
 
     last_timestamp_imu = timestamp;
 
     imu_buffer.push_back(msg);
+    realtime_imu_buffer.push_back(msg);
     mtx_buffer.unlock();
     sig_buffer.notify_all();
 }
@@ -462,6 +466,45 @@ bool sync_packages(MeasureGroup &meas)
     lidar_buffer.pop_front();
     time_buffer.pop_front();
     lidar_pushed = false;
+    return true;
+}
+
+bool realtime_update()
+{
+    if (realtime_imu_buffer.empty())
+        return false;
+
+    V3D angvel_avr, acc_avr, acc_imu, vel_imu, pos_imu;
+    input_ikfom in;
+    double dt = 0;
+
+    while (!realtime_imu_buffer.empty())
+    {
+        mtx_buffer.lock();
+        auto &&imu_ptr = realtime_imu_buffer.front();
+        realtime_imu_buffer.pop_front();
+        mtx_buffer.unlock();
+
+        angvel_avr << 0.5 * (last_imu_ptr->angular_velocity.x + imu_ptr->angular_velocity.x),
+                    0.5 * (last_imu_ptr->angular_velocity.y + imu_ptr->angular_velocity.y),
+                    0.5 * (last_imu_ptr->angular_velocity.z + imu_ptr->angular_velocity.z);
+        acc_avr << 0.5 * (last_imu_ptr->linear_acceleration.x + imu_ptr->linear_acceleration.x),
+                0.5 * (last_imu_ptr->linear_acceleration.y + imu_ptr->linear_acceleration.y),
+                0.5 * (last_imu_ptr->linear_acceleration.z + imu_ptr->linear_acceleration.z);
+
+        acc_avr = acc_avr * G_m_s2 / p_imu->mean_acc.norm();  // - state_inout.ba;
+
+        in.acc = acc_avr;
+        in.gyro = angvel_avr;
+
+        dt = imu_ptr->header.stamp.toSec() - last_imu_ptr->header.stamp.toSec();
+
+        MTK::vectview<const double, 24> f = get_f(realtime_state_point, in);
+        realtime_state_point.oplus(f, dt);
+
+        last_imu_ptr = std::make_unique<sensor_msgs::Imu>(*imu_ptr);
+    }
+
     return true;
 }
 
@@ -619,10 +662,10 @@ template<typename T>
 void set_posestamp(T & out)
 {
     // R
-    Eigen::Quaterniond eigen_quat(geoQuat.w, 
-                                  geoQuat.x, 
-                                  geoQuat.y, 
-                                  geoQuat.z);
+    Eigen::Quaterniond eigen_quat(realtime_state_point.rot.coeffs()[3],
+                                  realtime_state_point.rot.coeffs()[0], 
+                                  realtime_state_point.rot.coeffs()[1], 
+                                  realtime_state_point.rot.coeffs()[2]);
     M3D init_R_lidar = eigen_quat.toRotationMatrix();
     M3D MAP_R_BOT = BOT_R_wrt_IMU * init_R_lidar * IMU_R_wrt_BOT;
 
@@ -632,9 +675,9 @@ void set_posestamp(T & out)
     tf::quaternionTFToMsg(tf_q, out.pose.orientation);
 
     // T
-    V3D init_T_lidar(state_point.pos(0), 
-                             state_point.pos(1), 
-                             state_point.pos(2));
+    V3D init_T_lidar(realtime_state_point.pos(0), 
+                     realtime_state_point.pos(1), 
+                     realtime_state_point.pos(2));
     V3D MAP_T_lidar(BOT_R_wrt_IMU * init_T_lidar + BOT_T_wrt_IMU);
     V3D MAP_T_BOT(MAP_T_lidar - MAP_R_BOT * BOT_T_wrt_IMU);
 
@@ -646,15 +689,15 @@ void set_posestamp(T & out)
 template<typename T>
 void set_velstamp(T & out)
 {
-    Eigen::Quaterniond eigen_quat(geoQuat.w, 
-                                  geoQuat.x, 
-                                  geoQuat.y, 
-                                  geoQuat.z);
+    Eigen::Quaterniond eigen_quat(realtime_state_point.rot.coeffs()[3],
+                                  realtime_state_point.rot.coeffs()[0], 
+                                  realtime_state_point.rot.coeffs()[1], 
+                                  realtime_state_point.rot.coeffs()[2]);
     M3D init_R_lidar = eigen_quat.toRotationMatrix();
     M3D MAP_R_BOT = BOT_R_wrt_IMU * init_R_lidar * IMU_R_wrt_BOT;
-    V3D init_T_lidar(state_point.vel(0), 
-                             state_point.vel(1), 
-                             state_point.vel(2));
+    V3D init_T_lidar(realtime_state_point.vel(0), 
+                     realtime_state_point.vel(1), 
+                     realtime_state_point.vel(2));
     V3D MAP_T_lidar(BOT_R_wrt_IMU * init_T_lidar + BOT_T_wrt_IMU);
     V3D MAP_T_BOT(MAP_T_lidar - MAP_R_BOT * BOT_T_wrt_IMU);
 
@@ -667,7 +710,7 @@ void publish_odometry(const ros::Publisher & pubOdomAftMapped)
 {
     odomAftMapped.header.frame_id = "map";
     odomAftMapped.child_frame_id = "body";
-    odomAftMapped.header.stamp = ros::Time().fromSec(lidar_end_time);// ros::Time().fromSec(lidar_end_time);
+    odomAftMapped.header.stamp = last_imu_ptr->header.stamp;// ros::Time().fromSec(lidar_end_time);
     set_posestamp(odomAftMapped.pose);
     set_velstamp(odomAftMapped.twist);
     pubOdomAftMapped.publish(odomAftMapped);
@@ -684,8 +727,8 @@ void publish_odometry(const ros::Publisher & pubOdomAftMapped)
     }
 
     static tf::TransformBroadcaster br;
-    tf::Transform                   transform;
-    tf::Quaternion                  q;
+    tf::Transform transform;
+    tf::Quaternion q;
     transform.setOrigin(tf::Vector3(odomAftMapped.pose.pose.position.x, \
                                     odomAftMapped.pose.pose.position.y, \
                                     odomAftMapped.pose.pose.position.z));
@@ -1048,15 +1091,16 @@ int main(int argc, char** argv)
             state_point = kf.get_x();
             euler_cur = SO3ToEuler(state_point.rot);
             pos_lid = state_point.pos + state_point.rot * state_point.offset_T_L_I;
-            geoQuat.x = state_point.rot.coeffs()[0];
-            geoQuat.y = state_point.rot.coeffs()[1];
-            geoQuat.z = state_point.rot.coeffs()[2];
-            geoQuat.w = state_point.rot.coeffs()[3];
 
             double t_update_end = omp_get_wtime();
 
-            /******* Publish odometry *******/
-            publish_odometry(pubOdomAftMapped);
+            realtime_state_point = state_point;
+            mtx_buffer.lock();
+            realtime_imu_buffer = imu_buffer;
+            last_imu_ptr = std::make_unique<sensor_msgs::Imu>(*(Measures.imu.back()));
+            mtx_buffer.unlock();
+            last_imu_ptr->header.stamp = ros::Time().fromSec(Measures.lidar_beg_time);
+            flg_first_ekf = true;
 
             /*** add the feature points to map kdtree ***/
             t3 = omp_get_wtime();
@@ -1099,6 +1143,11 @@ int main(int argc, char** argv)
                 <<" "<<state_point.bg.transpose()<<" "<<state_point.ba.transpose()<<" "<<state_point.grav<<" "<<feats_undistort->points.size()<<endl;
                 dump_lio_state_to_log(fp);
             }
+        }
+        else if (flg_first_ekf && realtime_update())
+        {
+            /******* Publish odometry *******/
+            publish_odometry(pubOdomAftMapped);
         }
 
         status = ros::ok();

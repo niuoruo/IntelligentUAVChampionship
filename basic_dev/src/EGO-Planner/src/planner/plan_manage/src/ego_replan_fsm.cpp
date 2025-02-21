@@ -181,17 +181,20 @@ namespace ego_planner
 
       if (mondifyInCollisionFinalGoal()) // case 1: find that current goal is in obstacles
       {
+        std::cout << "case 1" << std::endl;
         // pass
       }
       else if ((target_type_ == TARGET_TYPE::PRESET_TARGET) &&
                (wpt_id_ < waypoint_num_ - 1) &&
                (final_goal_ - pos).norm() < no_replan_thresh_) // case 2: assign the next waypoint
       {
+        std::cout << "case 2" << std::endl;
         wpt_id_++;
         planNextWaypoint(wps_[wpt_id_]);
       }
-      else if (touch_the_goal) // case 3: the final waypoint reached
+      else if ((t_cur > info->duration - 1e-2) && touch_the_goal) // case 3: the final waypoint reached
       {
+        std::cout << "case 3" << std::endl;
         have_target_ = false;
         have_trigger_ = false;
 
@@ -207,6 +210,7 @@ namespace ego_planner
       }
       else if (t_cur > replan_thresh_ || (!touch_the_goal && close_to_current_traj_end)) // case 3: time to perform next replan
       {
+        std::cout << "case 4" << std::endl;
         changeFSMExecState(REPLAN_TRAJ, "FSM");
       }
       // ROS_ERROR("AAAA");

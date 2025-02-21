@@ -80,8 +80,8 @@ void polyTrajCallback(traj_utils::PolyTrajPtr msg)
 
 std::pair<double, double> calculate_yaw(double t_cur, Eigen::Vector3d &pos, double dt)
 {
-  constexpr double YAW_DOT_MAX_PER_SEC = M_PI / 2.0;
-  constexpr double YAW_DOT_DOT_MAX_PER_SEC = M_PI / 2.0;
+  constexpr double YAW_DOT_MAX_PER_SEC = M_PI;
+  constexpr double YAW_DOT_DOT_MAX_PER_SEC = 3.0 * M_PI;
   std::pair<double, double> yaw_yawdot(0, 0);
 
   Eigen::Vector3d dir = t_cur + time_forward_ <= traj_duration_
@@ -182,22 +182,22 @@ void publish_cmd(Vector3d p, Vector3d v, Vector3d a, Vector3d j, double y, doubl
   // Publish velocity vectors for visualization
   static ros::Publisher vel_vis_pub = ros::NodeHandle().advertise<visualization_msgs::Marker>("/velocity_vector", 10);
   visualization_msgs::Marker marker;
-  marker.header.frame_id = "map";
+  marker.header.frame_id = "body";
   marker.header.stamp = ros::Time::now();
   marker.type = visualization_msgs::Marker::ARROW;
   marker.action = visualization_msgs::Marker::ADD;
   
   // Start point of arrow (current position)
   marker.points.push_back(geometry_msgs::Point());
-  marker.points[0].x = odom_.pose.pose.position.x;
-  marker.points[0].y = odom_.pose.pose.position.y;
-  marker.points[0].z = odom_.pose.pose.position.z;
+  marker.points[0].x = 0.0;
+  marker.points[0].y = 0.0;
+  marker.points[0].z = 0.0;
   
   // End point of arrow (velocity vector)
   marker.points.push_back(geometry_msgs::Point());
-  marker.points[1].x = odom_.pose.pose.position.x + v(0) * 10;
-  marker.points[1].y = odom_.pose.pose.position.y + v(1) * 10;
-  marker.points[1].z = odom_.pose.pose.position.z + v(2) * 10;
+  marker.points[1].x = v(0) * 10;
+  marker.points[1].y = v(1) * 10;
+  marker.points[1].z = v(2) * 10;
   
   // Arrow properties
   marker.scale.x = 0.1;  // shaft diameter

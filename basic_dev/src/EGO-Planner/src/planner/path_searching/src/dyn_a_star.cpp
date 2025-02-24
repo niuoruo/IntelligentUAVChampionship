@@ -91,7 +91,9 @@ vector<GridNodePtr> AStar::retrievePath(GridNodePtr current)
 bool AStar::ConvertToIndexAndAdjustStartEndPoints(Vector3d start_pt, Vector3d end_pt, Vector3i &start_idx, Vector3i &end_idx)
 {
     if (!Coord2Index(start_pt, start_idx) || !Coord2Index(end_pt, end_idx))
+    {
         return false;
+    }
 
     int occ;
     if (checkOccupancy(Index2Coord(start_idx)))
@@ -148,6 +150,7 @@ ASTAR_RET AStar::AstarSearch(const double step_size, Vector3d start_pt, Vector3d
     inv_step_size_ = 1 / step_size;
     center_ = (start_pt + end_pt) / 2;
 
+    // cout << "start_pt=" << start_pt.transpose() << " end_pt=" << end_pt.transpose() << " center=" << center_.transpose() << endl;
     Vector3i start_idx, end_idx;
     if (!ConvertToIndexAndAdjustStartEndPoints(start_pt, end_pt, start_idx, end_idx))
     {
@@ -156,7 +159,7 @@ ASTAR_RET AStar::AstarSearch(const double step_size, Vector3d start_pt, Vector3d
     }
 
     // if ( start_pt(0) > -1 && start_pt(0) < 0 )
-    //     cout << "start_pt=" << start_pt.transpose() << " end_pt=" << end_pt.transpose() << endl;
+    // cout << "start_pt=" << start_pt.transpose() << " end_pt=" << end_pt.transpose() << endl;
 
     GridNodePtr startPtr = GridNodeMap_[start_idx(0)][start_idx(1)][start_idx(2)];
     GridNodePtr endPtr = GridNodeMap_[end_idx(0)][end_idx(1)][end_idx(2)];

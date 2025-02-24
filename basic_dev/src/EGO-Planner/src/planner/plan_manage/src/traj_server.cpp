@@ -3,15 +3,19 @@
 #include <optimizer/poly_traj_utils.hpp>
 #include <quadrotor_msgs/PositionCommand.h>
 #include <std_msgs/Empty.h>
+#include <airsim_ros/RotorPWM.h>
 #include <visualization_msgs/Marker.h>
 #include <ros/ros.h>
 #include <tf/transform_datatypes.h>
 #include "airsim_ros/VelCmd.h"
 #include "airsim_ros/PoseCmd.h"
+#include <Eigen/Dense>
 
 using namespace Eigen;
 
 ros::Publisher pos_cmd_pub;
+ros::Publisher pwm_pub;
+ros::Publisher position_cmd_pub;
 
 airsim_ros::VelCmd cmd;
 // double pos_gain[3] = {0, 0, 0};
@@ -31,8 +35,10 @@ Eigen::Vector3d last_pos_;
 nav_msgs::Odometry odom_;
 
 // yaw control
-double yaw_, last_yawdot_, slowly_flip_yaw_target_, slowly_turn_to_center_target_;
+double roll_, pitch_, yaw_, last_yawdot_, slowly_flip_yaw_target_, slowly_turn_to_center_target_;
 double time_forward_;
+
+Eigen::VectorXf X_des, X_real;
 
 void heartbeatCallback(std_msgs::EmptyPtr msg)
 {
@@ -80,8 +86,10 @@ void polyTrajCallback(traj_utils::PolyTrajPtr msg)
 
 std::pair<double, double> calculate_yaw(double t_cur, Eigen::Vector3d &pos, double dt)
 {
-  constexpr double YAW_DOT_MAX_PER_SEC = M_PI;
-  constexpr double YAW_DOT_DOT_MAX_PER_SEC = 3.0 * M_PI;
+  // constexpr double YAW_DOT_MAX_PER_SEC = 2.0 * M_PI;
+  // constexpr double YAW_DOT_DOT_MAX_PER_SEC = 5.0 * M_PI;
+  constexpr double YAW_DOT_MAX_PER_SEC = M_PI / 2.0;
+  constexpr double YAW_DOT_DOT_MAX_PER_SEC = M_PI / 2.0;
   std::pair<double, double> yaw_yawdot(0, 0);
 
   Eigen::Vector3d dir = t_cur + time_forward_ <= traj_duration_
@@ -121,7 +129,7 @@ std::pair<double, double> calculate_yaw(double t_cur, Eigen::Vector3d &pos, doub
   marker.color.a = 1.0;
   marker_pub.publish(marker);
   
-  double yaw_temp = dir.norm() > 0.1
+  double yaw_temp = dir.norm() > 0.05
                         ? atan2(dir(1), dir(0))
                         : yaw_;
 
@@ -136,26 +144,7 @@ std::pair<double, double> calculate_yaw(double t_cur, Eigen::Vector3d &pos, doub
     d_yaw += 2 * M_PI;
   }
 
-  const double YDM = d_yaw >= 0 ? YAW_DOT_MAX_PER_SEC : -YAW_DOT_MAX_PER_SEC;
-  const double YDDM = d_yaw >= 0 ? YAW_DOT_DOT_MAX_PER_SEC : -YAW_DOT_DOT_MAX_PER_SEC;
-  double d_yaw_max;
-  if (fabs(last_yawdot_ + dt * YDDM) <= fabs(YDM))
-  {
-    // yawdot = last_yawdot_ + dt * YDDM;
-    d_yaw_max = last_yawdot_ * dt + 0.5 * YDDM * dt * dt;
-  }
-  else
-  {
-    // yawdot = YDM;
-    double t1 = (YDM - last_yawdot_) / YDDM;
-    d_yaw_max = ((dt - t1) + dt) * (YDM - last_yawdot_) / 2.0;
-  }
-
-  if (fabs(d_yaw) > fabs(d_yaw_max))
-  {
-    d_yaw = d_yaw_max;
-  }
-  yawdot = d_yaw / dt;
+  yawdot = (d_yaw > 0 ? 1 : -1) * sqrt(sqrt(fabs(d_yaw)));
 
   double yaw = yaw_ + d_yaw;
   if (yaw > M_PI)
@@ -177,7 +166,12 @@ void publish_cmd(Vector3d p, Vector3d v, Vector3d a, Vector3d j, double y, doubl
   cmd.twist.linear.y = -v(1);  // y方向线速度(m/s)
   cmd.twist.linear.z = -v(2);  // z方向线速度(m/s)
   cmd.twist.angular.z = -yd;   // z方向角速度(yaw, deg)
-  pos_cmd_pub.publish(cmd);
+  // pos_cmd_pub.publish(cmd);
+
+  // airsim_ros::RotorPWM msg;
+  // velocityToPWM(v(0), -v(1), -v(2),
+  //            -yd, msg);
+  // pwm_pub.publish(msg);
 
   // Publish velocity vectors for visualization
   static ros::Publisher vel_vis_pub = ros::NodeHandle().advertise<visualization_msgs::Marker>("/velocity_vector", 10);
@@ -224,9 +218,7 @@ void odometryCallback(const nav_msgs::OdometryConstPtr &msg)
     odom_.pose.pose.orientation.z,
     odom_.pose.pose.orientation.w);
   tf::Matrix3x3 m(q);
-  double roll, pitch, yaw;
-  m.getRPY(roll, pitch, yaw);
-  yaw_ = yaw;
+  m.getRPY(roll_, pitch_, yaw_);
 }
 
 void cmdCallback(const ros::TimerEvent &e)
@@ -289,29 +281,51 @@ void cmdCallback(const ros::TimerEvent &e)
     acc = traj_->getAcc(t_cur);
     jer = traj_->getJer(t_cur);
   }
+  // X_des << pos(0), -pos(1), -pos(2), 
+  //          vel(0), -vel(1), -vel(2), 
+  //          jer(0), -jer(1), -jer(2),
+  //          0, 0, 0;
 
-
-  // Calculate yaw
+  quadrotor_msgs::PositionCommand pos_cmd;
+  pos_cmd.header.stamp = time_now;
+  pos_cmd.header.frame_id = "map";
+  pos_cmd.position.x = pos(0);
+  pos_cmd.position.y = pos(1);
+  pos_cmd.position.z = pos(2);
+  pos_cmd.velocity.x = vel(0);
+  pos_cmd.velocity.y = vel(1);
+  pos_cmd.velocity.z = vel(2);
+  pos_cmd.acceleration.x = acc(0);
+  pos_cmd.acceleration.y = acc(1);
+  pos_cmd.acceleration.z = acc(2);
+  pos_cmd.jerk.x = jer(0);
+  pos_cmd.jerk.y = jer(1);
+  pos_cmd.jerk.z = jer(2);
   yaw_yawdot = calculate_yaw(t_cur, pos, (time_now - time_last).toSec());
-  yaw_yawdot.second = 0.0;
+  pos_cmd.yaw = yaw_yawdot.first;
 
-  double cos_yaw = cos(yaw_);
-  double sin_yaw = sin(yaw_);
-  Eigen::Vector3d vel_drone;
-  vel_drone(0) = cos_yaw * vel(0) + sin_yaw * vel(1);
-  vel_drone(1) = -sin_yaw * vel(0) + cos_yaw * vel(1);
-  vel_drone(2) = vel(2);
+  position_cmd_pub.publish(pos_cmd);
 
-  vel = vel_drone;
+  // // Calculate yaw
+  // yaw_yawdot.second = 0.0;
 
-  /*** calculate yaw ***/
-  yaw_yawdot = calculate_yaw(t_cur, pos, (time_now - time_last).toSec());
-  // Update last values
-  time_last = time_now;
-  last_pos_ = pos;
+  // double cos_yaw = cos(yaw_);
+  // double sin_yaw = sin(yaw_);
+  // Eigen::Vector3d vel_drone;
+  // vel_drone(0) = cos_yaw * vel(0) + sin_yaw * vel(1);
+  // vel_drone(1) = -sin_yaw * vel(0) + cos_yaw * vel(1);
+  // vel_drone(2) = vel(2);
 
-    // publish
-    publish_cmd(pos, vel, acc, jer, yaw_yawdot.first, yaw_yawdot.second);
+  // vel = vel_drone;
+
+  // /*** calculate yaw ***/
+  // yaw_yawdot = calculate_yaw(t_cur, pos, (time_now - time_last).toSec());
+  // // Update last values
+  // time_last = time_now;
+  // last_pos_ = pos;
+
+  //   // publish
+  //   publish_cmd(pos, vel, acc, jer, yaw_yawdot.first, yaw_yawdot.second);
 }
 
 int main(int argc, char **argv)
@@ -324,13 +338,17 @@ int main(int argc, char **argv)
   ros::Subscriber heartbeat_sub = nh.subscribe("heartbeat", 10, heartbeatCallback);
   ros::Subscriber odomtry_sub = nh.subscribe("/Odometry", 10, odometryCallback);
 
-  pos_cmd_pub = nh.advertise<airsim_ros::VelCmd>("/airsim_node/drone_1/vel_cmd_body_frame", 50);
-
+  // pos_cmd_pub = nh.advertise<airsim_ros::VelCmd>("/airsim_node/drone_1/vel_cmd_body_frame", 50);
+  pwm_pub = nh.advertise<airsim_ros::RotorPWM>("/airsim_node/drone_1/rotor_pwm_cmd", 10);
+  position_cmd_pub = nh.advertise<quadrotor_msgs::PositionCommand>("/position_command", 10);
   ros::Timer cmd_timer = nh.createTimer(ros::Duration(0.01), cmdCallback);
 
   nh.param("traj_server/time_forward", time_forward_, -1.0);
   yaw_ = 0.0;
   last_yawdot_ = 0.0;
+
+  X_des.resize(12);
+  X_real.resize(12);
 
   ros::Duration(1.0).sleep();
 

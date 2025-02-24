@@ -348,7 +348,6 @@ void ImuProcess::UndistortPcl(const MeasureGroup &meas, esekfom::esekf<state_ikf
       auto time = pcl_end_time - pcl_beg_time;
       for (auto it_kp = IMUpose.end() - 1; it_kp != IMUpose.begin(); it_kp--)
       {
-          std::cout << "it_pcl->curvature: " << it_pcl->curvature << std::endl;
           auto head = it_kp - 1;
           auto tail = it_kp;
           R_imu<<MAT_FROM_ARRAY(head->rot);

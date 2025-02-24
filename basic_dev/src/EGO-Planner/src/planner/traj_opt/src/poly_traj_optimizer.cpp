@@ -177,19 +177,24 @@ namespace ego_planner
         }
       }
 
+      // each piece is segment to cps_num_prePiece_ parts
       const double next_t_stp = t_seg_start(id_piece_curr) + durations(id_piece_curr) / cps_num_prePiece_ * ((id_cps_curr + 1) - cps_num_prePiece_ * id_piece_curr);
+      // caculate next id_cps's time, if are small than now caculating t, means need change to next segmented part
       if (t >= next_t_stp)
       {
+        // need change large --- next piece
         if (id_cps_curr + 1 >= cps_num_prePiece_ * (id_piece_curr + 1))
         {
           ++id_piece_curr;
         }
+        // need change small --- same piece and next cps
         if (++id_cps_curr >= id_cps_end)
         {
           break;
         }
       }
 
+      // get id_cps_end's pts_check to optimize
       Eigen::Vector3d pt = traj.getPos(t);
       if (t < 1e-5 || pts_check[id_cps_curr].size() == 0 || (pt - pt_last).cwiseAbs().maxCoeff() > RES_2)
       {
@@ -240,6 +245,7 @@ namespace ego_planner
       {
         occ = grid_map_->getInflateOccupancy(pts_check[i][j].second);
 
+        // beginning of A*
         if (occ && !last_occ)
         {
           if (same_occ_state_times > ENOUGH_INTERVAL || i == 0)
@@ -250,6 +256,7 @@ namespace ego_planner
           same_occ_state_times = 0;
           flag_got_end_maybe = false; // terminate in advance
         }
+        // end of A*
         else if (!occ && last_occ)
         {
           out_id = i + 1;
@@ -1635,7 +1642,7 @@ namespace ego_planner
     grid_map_ = map;
 
     a_star_.reset(new AStar);
-    a_star_->initGridMap(grid_map_, Eigen::Vector3i(100, 100, 100));
+    a_star_->initGridMap(grid_map_, Eigen::Vector3i(1000, 1000, 100));
   }
 
   void PolyTrajOptimizer::setControlPoints(const Eigen::MatrixXd &points)

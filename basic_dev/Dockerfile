@@ -8,7 +8,7 @@ USER root
 
 RUN apt update && apt install -y python3-catkin-tools ros-noetic-geographic-msgs \
  ros-noetic-tf2-sensor-msgs ros-noetic-tf2-geometry-msgs ros-noetic-image-transport \
- ros-noetic-roslint net-tools
+ ros-noetic-roslint net-tools ros-noetic-mavros
 
 ENV ROS_DISTRO noetic
 

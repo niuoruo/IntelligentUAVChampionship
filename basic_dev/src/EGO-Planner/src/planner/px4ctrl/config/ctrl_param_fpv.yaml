@@ -1,4 +1,4 @@
-mass        : 0.905
+mass        : 0.9
 gra         : 9.81
 # hov_percent : 0.148406   # Thrust percentage in Stabilize/Arco mode
 hov_percent : 0.00446
@@ -18,58 +18,71 @@ perform_aerodynamics_compensation: false
 hover:
     use_hov_percent_kf: false
     #hzchzc
-    percent_lower_limit: 0.40
-    percent_higher_limit: 0.77
+    percent_lower_limit: 0.00
+    percent_higher_limit: 100000
 
+# gain:
+#     hover:
+#         Kp0: 1.7 #1.5
+#         Kp1: 1.7 #5
+#         Kp2: 1.7
+#         Kv0: 1.5 #6
+#         Kv1: 1.5 #6
+#         Kv2: 1.5 #6
+#         Kvi0: 0.2
+#         Kvi1: 0.2
+#         Kvi2: 0.2
+#         Ka0: 1.0
+#         Ka1: 1.0
+#         Ka2: 1.0
+#         Kyaw: 6.0 # 15.0
+#         Krp: 15.0 #25
+#     track:
+#         Kp0: 1.7 #1.5
+#         Kp1: 1.7 #5
+#         Kp2: 1.7
+#         Kv0: 1.5 #6
+#         Kv1: 1.5 #6
+#         Kv2: 1.5 #6
+#         Kvi0: 0.2
+#         Kvi1: 0.2
+#         Kvi2: 0.2
+#         Ka0: 1.0
+#         Ka1: 1.0
+#         Ka2: 1.0
+#         Kyaw: 6.0 # 15.0
+#         Krp: 15.0 #25
 gain:
     hover:
-        Kp0: 1.7 #1.5
-        Kp1: 1.7 #5
-        Kp2: 1.7
-        Kv0: 1.5 #6
-        Kv1: 1.5 #6
-        Kv2: 1.5 #6
-        Kvi0: 0.2
-        Kvi1: 0.2
-        Kvi2: 0.2
-        # Kp0: 20.0
-        # Kp1: 20.0
-        # Kp2: 20.0
-        # Kv0: 8.0
-        # Kv1: 8.0
-        # Kv2: 8.0
-        # Kvi0: 0.1
-        # Kvi1: 0.1
-        # Kvi2: 0.1
+        Kp0: 1.5 #1.5
+        Kp1: 1.5 #5
+        Kp2: 2.0
+        Kv0: 6 #6
+        Kv1: 6 #6
+        Kv2: 6 #6
+        Kvi0: 1.0
+        Kvi1: 1.0
+        Kvi2: 1.0
         Ka0: 1.0
         Ka1: 1.0
         Ka2: 1.0
-        Kyaw: 6.0 # 15.0
-        Krp: 15.0 #25
+        Kyaw: 2.0 # 15.0
+        Krp: 5.0 #25
     track:
-        Kp0: 1.7 #1.5
-        Kp1: 1.7 #5
-        Kp2: 1.7
-        Kv0: 1.5 #6
-        Kv1: 1.5 #6
-        Kv2: 1.5 #6
-        Kvi0: 0.2
-        Kvi1: 0.2
-        Kvi2: 0.2
-        # Kp0: 20.0
-        # Kp1: 20.0
-        # Kp2: 20.0
-        # Kv0: 8.0
-        # Kv1: 8.0
-        # Kv2: 8.0
-        # Kvi0: 0.1
-        # Kvi1: 0.1
-        # Kvi2: 0.1
+        Kp0: 1.5 #1.5
+        Kp1: 1.5 #5
+        Kp2: 2.0
+        Kv0: 6 #6
+        Kv1: 6 #6
+        Kv2: 6 #6
+        Kvi0: 1.0
+        Kvi1: 1.0
+        Kvi2: 1.0
         Ka0: 1.0
         Ka1: 1.0
         Ka2: 1.0
-        Kyaw: 6.0 # 15.0
-        Krp: 15.0 #25
+        Kyaw: 2.0 # 15.0
+        Krp: 5.0 #25
 
 msg_timeout:
     odom: 0.5

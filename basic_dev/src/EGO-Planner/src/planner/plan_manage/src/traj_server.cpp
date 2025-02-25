@@ -302,8 +302,7 @@ void cmdCallback(const ros::TimerEvent &e)
   pos_cmd.jerk.y = jer(1);
   pos_cmd.jerk.z = jer(2);
   yaw_yawdot = calculate_yaw(t_cur, pos, (time_now - time_last).toSec());
-  pos_cmd.yaw = yaw_yawdot.first;
-
+  pos_cmd.yaw = 0.0;
   position_cmd_pub.publish(pos_cmd);
 
   // // Calculate yaw

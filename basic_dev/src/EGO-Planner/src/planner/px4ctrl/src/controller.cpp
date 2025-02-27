@@ -40,6 +40,9 @@ void Controller::config_gain(const Parameter_t::Gain& gain)
 	Kvi(0,0) = gain.Kvi0;
 	Kvi(1,1) = gain.Kvi1;
 	Kvi(2,2) = gain.Kvi2;
+	Kvd(0,0) = gain.Kvd0;
+	Kvd(1,1) = gain.Kvd1;
+	Kvd(2,2) = gain.Kvd2;
 	Ka(0,0) = gain.Ka0;
 	Ka(1,1) = gain.Ka1;
 	Ka(2,2) = gain.Ka2;
@@ -136,6 +139,7 @@ Controller_Output_t Controller::computeNominalReferenceInputs(
 void Controller::update(
 	const Desired_State_t& des, 
 	const Odom_Data_t& odom, 
+	const Imu_Data_t& imu,
 	Controller_Output_t& u, 
 	SO3_Controller_Output_t& u_so3
 )
@@ -182,7 +186,11 @@ void Controller::update(
 	Matrix3d wRc = rotz(yaw_curr);
 	Matrix3d cRw = wRc.transpose();
 	e_p = des.p - odom.p;
-	Eigen::Vector3d u_p = wRc * Kp * cRw * e_p;
+	Eigen::Vector3d u_p;
+	if (e_p.norm() > param.thresh)
+		u_p = wRc * (param.Kp_gain * Kp) * cRw * e_p;
+	else
+		u_p = wRc * Kp * cRw * e_p;
 	u.des_v_real = des.v + u_p; // For estimating hover percent
 	e_v = des.v + u_p - odom.v;
 
@@ -194,6 +202,7 @@ void Controller::update(
 	}
 	Eigen::Vector3d u_v_p = wRc * Kv * cRw * e_v;
 	const std::vector<double> integration_output_limits = {0.4, 0.4, 0.4};
+	const std::vector<double> d_output_limits = {0.4, 0.4, 0.4};
 	Eigen::Vector3d u_v_i = wRc * Kvi * cRw * int_e_v;
 	for (size_t k = 0; k < 3; ++k) {
 		if (std::fabs(u_v_i(k)) > integration_output_limits[k]) {
@@ -201,27 +210,42 @@ void Controller::update(
 			ROS_INFO("Integration saturate for axis %zu, value=%.3f", k, u_v_i(k));
 		}
 	}
-	Eigen::Vector3d u_v = u_v_p + u_v_i;
-	std::cout << "u_v: " << (u_v * param.mass).transpose() << std::endl;
+	Eigen::Matrix3d rot = odom.q.toRotationMatrix();
+	Eigen::Vector3d a = imu.a - rot.inverse() * Eigen::Vector3d(0, 0, param.gra);
+	// std::cout << "a:" << a.transpose() << std::endl;
+	Eigen::Vector3d u_v_d = -wRc * Kvd * cRw * a;
+	for (size_t k = 0; k < 3; ++k) {
+		if (std::fabs(u_v_d(k)) > d_output_limits[k]) {
+			uav_utils::limit_range(u_v_d(k), d_output_limits[k]);
+			ROS_INFO("d for axis %zu, value=%.3f", k, u_v_d(k));
+		}
+	}
+	// std::cout << "u_v_d: " << u_v_d.transpose() << std::endl;
+	Eigen::Vector3d u_v = u_v_p + u_v_i + u_v_d;
+	// std::cout << "u_v: " << u_v.transpose() << std::endl;
 	e_yaw = yaw_des - yaw_curr;
 	while(e_yaw > M_PI) e_yaw -= (2 * M_PI);
 	while(e_yaw < -M_PI) e_yaw += (2 * M_PI);
 	double u_yaw = Kyaw * e_yaw;
 	F_des = u_v * param.mass + 
 		Vector3d(0, 0, param.mass * param.gra) + Ka * param.mass * des.a;
-	std::cout << "des.a: " << (Vector3d(0, 0, param.mass * param.gra)).transpose() << std::endl;
-	std::cout << "des.a: " << (Ka * param.mass * des.a).transpose() << std::endl;
+	// std::cout << "des.a: " << (Vector3d(0, 0, param.mass * param.gra)).transpose() << std::endl;
+	// std::cout << "des.a: " << (Ka * param.mass * des.a).transpose() << std::endl;
 	
-	std::cout << "F_des: " << F_des.transpose() << std::endl;
+	// std::cout << "F_des: " << F_des.transpose() << std::endl;
 
 	Matrix3d wRb_odom = odom.q.toRotationMatrix();
 	Vector3d z_b_curr = wRb_odom.col(2);
-	std::cout << "roll pitch yaw: " << odom.q.toRotationMatrix().eulerAngles(0, 1, 2).transpose() << std::endl;
-	std::cout << "z_b_curr: " << z_b_curr.transpose() << std::endl;
+	// std::cout << "roll pitch yaw: " << odom.q.toRotationMatrix().eulerAngles(0, 1, 2).transpose() << std::endl;
+	// std::cout << "z_b_curr: " << z_b_curr.transpose() << std::endl;
 	u.thrust = F_des.dot(z_b_curr);
 
 	const Eigen::Quaterniond desired_attitude = computeDesiredAttitude(F_des/param.mass, des.yaw, odom.q);
+	const Eigen::Vector3d rpy = desired_attitude.toRotationMatrix().eulerAngles(0, 1, 2);
+	// std::cout << "Desired Attitude - Roll: " << rpy.x() << ", Pitch: " << rpy.y() << ", Yaw: " << rpy.z() << std::endl;
+
 	const Eigen::Vector3d feedback_bodyrates = computeFeedBackControlBodyrates(desired_attitude, odom.q);
+	// std::cout << "Feedback Bodyrates: " << feedback_bodyrates.transpose() << std::endl;
 	u.roll_rate = reference_inputs.roll_rate+feedback_bodyrates.x();
 	u.pitch_rate = reference_inputs.pitch_rate+feedback_bodyrates.y();
 	u.yaw_rate = reference_inputs.yaw_rate+feedback_bodyrates.z();
@@ -237,19 +261,27 @@ void Controller::update(
 	uav_utils::limit_range(u.pitch_rate,limit_rate);
 	uav_utils::limit_range(u.yaw_rate,1.5);
 
-	std::cout << "u.roll_rate: " << u.roll_rate << std::endl;
-	std::cout << "u.pitch_rate: " << u.pitch_rate << std::endl;
-	std::cout << "u.yaw_rate: " << u.yaw_rate << std::endl;
-	std::cout << "odom_rate:" << odom.w.transpose() << std::endl;
+	// std::cout << "u.roll_rate: " << u.roll_rate << std::endl;
+	// std::cout << "u.pitch_rate: " << u.pitch_rate << std::endl;
+	// std::cout << "u.yaw_rate: " << u.yaw_rate << std::endl;
 
-	u.roll_rate = param.Kp_ct * param.Ixx * (u.roll_rate - odom.w(0));
-	u.pitch_rate = param.Kp_ct * param.Iyy * (u.pitch_rate - odom.w(1));
-	u.yaw_rate = param.Kp_cm * param.Izz * (u.yaw_rate - odom.w(2));
+	u.roll_rate = param.Krpd * param.Ixx * (u.roll_rate - odom.w(0));
+	u.pitch_rate = param.Krpd * param.Iyy * (u.pitch_rate - odom.w(1));
+	u.yaw_rate = param.Kyawd * param.Izz * (u.yaw_rate - odom.w(2));
 
-	printf("thrust: %f \n",u.thrust);
-	printf("roll: %f \n",u.roll_rate);
-	printf("pitch: %f \n",u.pitch_rate);
-	printf("yaw: %f \n",u.yaw_rate);
+
+	if(u.roll_rate>=limit_rate)
+		ROS_INFO("2ROLL RATE LIMIT!");
+	if(u.pitch_rate>=limit_rate)
+		ROS_INFO("2pitch_rate_limit!");
+	uav_utils::limit_range(u.roll_rate, 3.0*3.14);
+	uav_utils::limit_range(u.pitch_rate, 3.0*3.14);
+	uav_utils::limit_range(u.yaw_rate, 3.0);
+
+	// printf("thrust: %f \n",u.thrust);
+	// printf("roll: %f \n",u.roll_rate);
+	// printf("pitch: %f \n",u.pitch_rate);
+	// printf("yaw: %f \n",u.yaw_rate);
 };
 
 airsim_ros::RotorPWM Controller::computePWM(
@@ -338,6 +370,7 @@ Eigen::Vector3d Controller::computeRobustBodyXAxis(
   Eigen::Vector3d x_B = x_B_prototype;
 
   if (almostZero(x_B.norm())) {
+		std::cout << "here" << std::endl;
     // if cross(y_C, z_B) == 0, they are collinear =>
     // every x_B lies automatically in the x_C - z_C plane
 
@@ -374,6 +407,10 @@ Eigen::Vector3d Controller::computeFeedBackControlBodyrates(const Eigen::Quatern
   Eigen::Vector3d bodyrates;
   double krp = param.track_gain.Krp;
   double kyaw = param.track_gain.Kyaw;
+  double kdrp = param.Kdrp;
+  double kdyaw = param.Kdyaw;
+
+	static Eigen::Vector3d last_rate = Eigen::Vector3d::Zero();
 
   if (q_e.w() >= 0) {
     bodyrates.x() = 2.0 * krp * q_e.x();
@@ -384,6 +421,12 @@ Eigen::Vector3d Controller::computeFeedBackControlBodyrates(const Eigen::Quatern
     bodyrates.y() = -2.0 * krp * q_e.y();
     bodyrates.z() = -2.0 * kyaw * q_e.z();
   }
+
+	bodyrates.x() += kdrp * (bodyrates.x() - last_rate.x());
+	bodyrates.y() += kdrp * (bodyrates.y() - last_rate.y());
+	bodyrates.z() += kdyaw * (bodyrates.z() - last_rate.z());
+		
+	last_rate = bodyrates;
 
   return bodyrates;
 }

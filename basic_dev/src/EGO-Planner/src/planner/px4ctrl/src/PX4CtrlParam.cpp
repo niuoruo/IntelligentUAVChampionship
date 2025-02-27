@@ -7,24 +7,24 @@ Parameter_t::Parameter_t()
 
 void Parameter_t::config_from_ros_handle(const ros::NodeHandle& nh)
 {
-	read_essential_param(nh, "gain/hover/Kp0", hover_gain.Kp0);
-	read_essential_param(nh, "gain/hover/Kp1", hover_gain.Kp1);
-	read_essential_param(nh, "gain/hover/Kp2", hover_gain.Kp2);
+	read_essential_param(nh, "gain/track/Kp0", hover_gain.Kp0);
+	read_essential_param(nh, "gain/track/Kp1", hover_gain.Kp1);
+	read_essential_param(nh, "gain/track/Kp2", hover_gain.Kp2);
 	
-	read_essential_param(nh, "gain/hover/Kv0", hover_gain.Kv0);
-	read_essential_param(nh, "gain/hover/Kv1", hover_gain.Kv1);
-	read_essential_param(nh, "gain/hover/Kv2", hover_gain.Kv2);
+	read_essential_param(nh, "gain/track/Kv0", hover_gain.Kv0);
+	read_essential_param(nh, "gain/track/Kv1", hover_gain.Kv1);
+	read_essential_param(nh, "gain/track/Kv2", hover_gain.Kv2);
 
-	read_essential_param(nh, "gain/hover/Kvi0", hover_gain.Kvi0);
-	read_essential_param(nh, "gain/hover/Kvi1", hover_gain.Kvi1);
-	read_essential_param(nh, "gain/hover/Kvi2", hover_gain.Kvi2);
+	read_essential_param(nh, "gain/track/Kvi0", hover_gain.Kvi0);
+	read_essential_param(nh, "gain/track/Kvi1", hover_gain.Kvi1);
+	read_essential_param(nh, "gain/track/Kvi2", hover_gain.Kvi2);
 
-	read_essential_param(nh, "gain/hover/Ka0", hover_gain.Ka0);
-	read_essential_param(nh, "gain/hover/Ka1", hover_gain.Ka1);
-	read_essential_param(nh, "gain/hover/Ka2", hover_gain.Ka2);
+	read_essential_param(nh, "gain/track/Ka0", hover_gain.Ka0);
+	read_essential_param(nh, "gain/track/Ka1", hover_gain.Ka1);
+	read_essential_param(nh, "gain/track/Ka2", hover_gain.Ka2);
 
-	read_essential_param(nh, "gain/hover/Kyaw", hover_gain.Kyaw);
-	read_essential_param(nh, "gain/hover/Krp", hover_gain.Krp);
+	read_essential_param(nh, "gain/track/Kyaw", hover_gain.Kyaw);
+	read_essential_param(nh, "gain/track/Krp", hover_gain.Krp);
 	
 
 	read_essential_param(nh, "gain/track/Kp0", track_gain.Kp0);
@@ -39,12 +39,23 @@ void Parameter_t::config_from_ros_handle(const ros::NodeHandle& nh)
 	read_essential_param(nh, "gain/track/Kvi1", track_gain.Kvi1);
 	read_essential_param(nh, "gain/track/Kvi2", track_gain.Kvi2);
 
+	read_essential_param(nh, "gain/track/Kvd0", track_gain.Kvd0);
+	read_essential_param(nh, "gain/track/Kvd1", track_gain.Kvd1);
+	read_essential_param(nh, "gain/track/Kvd2", track_gain.Kvd2);
+
 	read_essential_param(nh, "gain/track/Ka0", track_gain.Ka0);
 	read_essential_param(nh, "gain/track/Ka1", track_gain.Ka1);
 	read_essential_param(nh, "gain/track/Ka2", track_gain.Ka2);
 
 	read_essential_param(nh, "gain/track/Kyaw", track_gain.Kyaw);
 	read_essential_param(nh, "gain/track/Krp", track_gain.Krp);
+
+	read_essential_param(nh, "gain/track/Kp_gain", Kp_gain);
+	read_essential_param(nh, "gain/track/thresh", thresh);
+	read_essential_param(nh, "gain/track/Kdrp", Kdrp);
+	read_essential_param(nh, "gain/track/Kdyaw", Kdyaw);
+	read_essential_param(nh, "gain/track/Kyawd", Kyawd);
+	read_essential_param(nh, "gain/track/Krpd", Krpd);
 
 	read_essential_param(nh, "hover/use_hov_percent_kf", hover.use_hov_percent_kf);
 	read_essential_param(nh, "hover/percent_lower_limit", hover.percent_lower_limit);
@@ -71,8 +82,6 @@ void Parameter_t::config_from_ros_handle(const ros::NodeHandle& nh)
 	read_essential_param(nh, "pwm_param/C_t", C_t);
 	read_essential_param(nh, "pwm_param/C_M", C_M);
 	read_essential_param(nh, "pwm_param/arm_length", arm_length);
-	read_essential_param(nh, "pwm_param/Kp_ct", Kp_ct);
-	read_essential_param(nh, "pwm_param/Kp_cm", Kp_cm);
 	read_essential_param(nh, "pwm_param/sqrtpwm2rads", sqrtpwm2rads);
 	read_essential_param(nh, "pwm_param/Ixx", Ixx);
 	read_essential_param(nh, "pwm_param/Iyy", Iyy);

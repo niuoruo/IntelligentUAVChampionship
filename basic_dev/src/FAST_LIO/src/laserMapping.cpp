@@ -663,14 +663,12 @@ template<typename T>
 void set_posestamp(T & out)
 {
     // R
-    Eigen::Quaterniond eigen_quat(realtime_state_point.rot.coeffs()[3],
-                                  realtime_state_point.rot.coeffs()[0], 
-                                  realtime_state_point.rot.coeffs()[1], 
-                                  realtime_state_point.rot.coeffs()[2]);
-    M3D init_R_lidar = eigen_quat.toRotationMatrix();
-    M3D MAP_R_BOT = BOT_R_wrt_IMU * init_R_lidar * IMU_R_wrt_BOT;
+    M3D init_R_lidar = realtime_state_point.rot.toRotationMatrix();
 
-    // 转换为tf与odom
+    M3D MAP_R_BOT = BOT_R_wrt_IMU * init_R_lidar * IMU_R_wrt_BOT;
+    // Print roll, pitch, yaw
+    V3D euler_angles = MAP_R_BOT.eulerAngles(0, 1, 2); // ZYX order: yaw, pitch, roll
+
     Eigen::Quaterniond q(MAP_R_BOT);
     tf::Quaternion tf_q(q.x(), q.y(), q.z(), q.w());
     tf::quaternionTFToMsg(tf_q, out.pose.orientation);
@@ -681,9 +679,6 @@ void set_posestamp(T & out)
                      realtime_state_point.pos(2));
     V3D MAP_T_lidar(BOT_R_wrt_IMU * init_T_lidar + BOT_T_wrt_IMU);
     V3D MAP_T_BOT(MAP_T_lidar - MAP_R_BOT * BOT_T_wrt_IMU);
-
-    static double last_x;
-    last_x = MAP_T_BOT(0);
 
     out.pose.position.x = MAP_T_BOT(0);
     out.pose.position.y = MAP_T_BOT(1);

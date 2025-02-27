@@ -70,7 +70,7 @@ void PX4CtrlFSM::process_hover_control(Controller_Output_t& u, SO3_Controller_Ou
 	des.yaw = hover_pose(3);
 	des.a = Vector3d::Zero();
 	des.jerk = Vector3d::Zero();
-	controller.update(des, odom_data, u, u_so3);
+	controller.update(des, odom_data, imu_data, u, u_so3);
 
 	//publish_desire(des);
 }
@@ -87,7 +87,7 @@ void PX4CtrlFSM::process_cmd_control(Controller_Output_t& u, SO3_Controller_Outp
 	// ROS_INFO_STREAM("desp: "<<des.p<<" desv: "<<des.v<<" desyaw: "<<des.yaw<<" desa "<<des.a);
 	// ROS_INFO_STREAM("odomp: "<<odom_data.p<<" odomv: "<<odom_data.v);
 	// ROS_INFO_STREAM("qo "<<odom_data.q.w()<<" q1 "<<odom_data.q.x() <<" q2 "<<odom_data.q.y()<<" q3 "<<odom_data.q.z());
-	controller.update(des, odom_data, u, u_so3);
+	controller.update(des, odom_data, imu_data, u, u_so3);
 	// ROS_INFO_STREAM("pitch: "<<u.pitch<<"roll: "<<u.roll<<" u.yaw: "<<u.yaw);
 
 	//publish_desire(des);	
@@ -128,6 +128,5 @@ void PX4CtrlFSM::toggle_offboard_mode(bool on_off)
 	
 }
 bool PX4CtrlFSM::px4_init(){
-	std::cout << odom_data.odom_init << imu_data.imu_init << cmd_data.cmd_init << std::endl;
 	return (odom_data.odom_init&&imu_data.imu_init&&cmd_data.cmd_init);
 }

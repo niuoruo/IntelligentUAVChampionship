@@ -30,6 +30,21 @@
     <arg name="point4_x"/>
     <arg name="point4_y"/>
     <arg name="point4_z"/>
+    <arg name="point5_x"/>
+    <arg name="point5_y"/>
+    <arg name="point5_z"/>
+    <arg name="point6_x"/>
+    <arg name="point6_y"/>
+    <arg name="point6_z"/>
+    <arg name="point7_x"/>
+    <arg name="point7_y"/>
+    <arg name="point7_z"/>
+    <arg name="point8_x"/>
+    <arg name="point8_y"/>
+    <arg name="point8_z"/>
+    <arg name="point9_x"/>
+    <arg name="point9_y"/>
+    <arg name="point9_z"/>
     <arg name="flight_type"/>
     <arg name="use_multitopology_trajs"/>
     <arg name="drone_id"/>
@@ -72,19 +87,34 @@
         <param name="fsm/waypoint4_x" value="$(arg point4_x)" type="double"/>
         <param name="fsm/waypoint4_y" value="$(arg point4_y)" type="double"/>
         <param name="fsm/waypoint4_z" value="$(arg point4_z)" type="double"/>
+        <param name="fsm/waypoint5_x" value="$(arg point5_x)" type="double"/>
+        <param name="fsm/waypoint5_y" value="$(arg point5_y)" type="double"/>
+        <param name="fsm/waypoint5_z" value="$(arg point5_z)" type="double"/>
+        <param name="fsm/waypoint6_x" value="$(arg point6_x)" type="double"/>
+        <param name="fsm/waypoint6_y" value="$(arg point6_y)" type="double"/>
+        <param name="fsm/waypoint6_z" value="$(arg point6_z)" type="double"/>
+        <param name="fsm/waypoint7_x" value="$(arg point7_x)" type="double"/>
+        <param name="fsm/waypoint7_y" value="$(arg point7_y)" type="double"/>
+        <param name="fsm/waypoint7_z" value="$(arg point7_z)" type="double"/>
+        <param name="fsm/waypoint8_x" value="$(arg point8_x)" type="double"/>
+        <param name="fsm/waypoint8_y" value="$(arg point8_y)" type="double"/>
+        <param name="fsm/waypoint8_z" value="$(arg point8_z)" type="double"/>
+        <param name="fsm/waypoint9_x" value="$(arg point9_x)" type="double"/>
+        <param name="fsm/waypoint9_y" value="$(arg point9_y)" type="double"/>
+        <param name="fsm/waypoint9_z" value="$(arg point9_z)" type="double"/>
         <param name="grid_map/resolution" value="0.1" />
         <param name="grid_map/map_size_x" value="$(arg map_size_x_)" />
         <param name="grid_map/map_size_y" value="$(arg map_size_y_)" />
         <param name="grid_map/map_size_z" value="$(arg map_size_z_)" />
         <param name="grid_map/local_update_range_x" value="10.0" />
         <param name="grid_map/local_update_range_y" value="10.0" />
-        <param name="grid_map/local_update_range_z" value="4.0" /> <!-- different meaning between grid_map.cpp and grid_map_bigmap.cpp -->
-        <param name="grid_map/obstacles_inflation" value="0.1" />
+        <param name="grid_map/local_update_range_z" value="6.0" /> <!-- different meaning between grid_map.cpp and grid_map_bigmap.cpp -->
+        <param name="grid_map/obstacles_inflation" value="0.05" />
         <param name="grid_map/local_map_margin" value="10"/>
         <param name="grid_map/enable_virtual_wall" value="true"/>
-        <param name="grid_map/virtual_ceil" value="3.0"/>
+        <param name="grid_map/virtual_ceil" value="50.0"/>
         <param name="grid_map/virtual_ground" value="-0.1"/>
-        <param name="grid_map/ground_height" value="-2.0"/>
+        <param name="grid_map/ground_height" value="-3.0"/>
         <!-- camera parameter -->
         <param name="grid_map/cx" value="$(arg cx)"/>
         <param name="grid_map/cy" value="$(arg cy)"/>

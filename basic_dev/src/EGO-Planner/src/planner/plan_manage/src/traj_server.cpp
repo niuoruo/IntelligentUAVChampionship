@@ -166,7 +166,7 @@ void publish_cmd(Vector3d p, Vector3d v, Vector3d a, Vector3d j, double y, doubl
   cmd.twist.linear.y = -v(1);  // y方向线速度(m/s)
   cmd.twist.linear.z = -v(2);  // z方向线速度(m/s)
   cmd.twist.angular.z = -yd;   // z方向角速度(yaw, deg)
-  // pos_cmd_pub.publish(cmd);
+  pos_cmd_pub.publish(cmd);
 
   // airsim_ros::RotorPWM msg;
   // velocityToPWM(v(0), -v(1), -v(2),
@@ -239,7 +239,7 @@ void cmdCallback(const ros::TimerEvent &e)
     ROS_ERROR("[traj_server] Lost heartbeat from the planner, is it dead?");
 
     receive_traj_ = false;
-    publish_cmd(last_pos_, Vector3d::Zero(), Vector3d::Zero(), Vector3d::Zero(), yaw_, 0);
+    // publish_cmd(last_pos_, Vector3d::Zero(), Vector3d::Zero(), Vector3d::Zero(), yaw_, 0);
   }
 
   double t_cur = (time_now - start_time_).toSec();
@@ -281,10 +281,13 @@ void cmdCallback(const ros::TimerEvent &e)
     acc = traj_->getAcc(t_cur);
     jer = traj_->getJer(t_cur);
   }
-  // X_des << pos(0), -pos(1), -pos(2), 
-  //          vel(0), -vel(1), -vel(2), 
-  //          jer(0), -jer(1), -jer(2),
-  //          0, 0, 0;
+  else
+  {
+    pos = traj_->getPos(traj_duration_);
+    vel = Eigen::Vector3d::Zero();
+    acc = Eigen::Vector3d::Zero();
+    jer = Eigen::Vector3d::Zero();
+  }
 
   quadrotor_msgs::PositionCommand pos_cmd;
   pos_cmd.header.stamp = time_now;
@@ -305,8 +308,26 @@ void cmdCallback(const ros::TimerEvent &e)
   pos_cmd.yaw = 0.0;
   position_cmd_pub.publish(pos_cmd);
 
-  // // Calculate yaw
-  // yaw_yawdot.second = 0.0;
+  // quadrotor_msgs::PositionCommand pos_cmd;
+  // pos_cmd.header.stamp = time_now;
+  // pos_cmd.header.frame_id = "map";
+  // pos_cmd.position.x = 0.0;
+  // pos_cmd.position.y = 0.0;
+  // pos_cmd.position.z = 0.0;
+  // pos_cmd.velocity.x = 2.0;
+  // pos_cmd.velocity.y = 0.0;
+  // pos_cmd.velocity.z = 0.0;
+  // pos_cmd.acceleration.x = 0.0;
+  // pos_cmd.acceleration.y = 0.0;
+  // pos_cmd.acceleration.z = 0.0;
+  // pos_cmd.jerk.x = 0.0;
+  // pos_cmd.jerk.y = 0.0;
+  // pos_cmd.jerk.z = 0.0;
+  // yaw_yawdot = calculate_yaw(t_cur, pos, (time_now - time_last).toSec());
+  // pos_cmd.yaw = 0.0;
+  // position_cmd_pub.publish(pos_cmd);
+
+  time_last = time_now;
 
   // double cos_yaw = cos(yaw_);
   // double sin_yaw = sin(yaw_);
@@ -337,7 +358,7 @@ int main(int argc, char **argv)
   ros::Subscriber heartbeat_sub = nh.subscribe("heartbeat", 10, heartbeatCallback);
   ros::Subscriber odomtry_sub = nh.subscribe("/Odometry", 10, odometryCallback);
 
-  // pos_cmd_pub = nh.advertise<airsim_ros::VelCmd>("/airsim_node/drone_1/vel_cmd_body_frame", 50);
+  pos_cmd_pub = nh.advertise<airsim_ros::VelCmd>("/airsim_node/drone_1/vel_cmd_body_frame", 50);
   pwm_pub = nh.advertise<airsim_ros::RotorPWM>("/airsim_node/drone_1/rotor_pwm_cmd", 10);
   position_cmd_pub = nh.advertise<quadrotor_msgs::PositionCommand>("/position_command", 10);
   ros::Timer cmd_timer = nh.createTimer(ros::Duration(0.01), cmdCallback);

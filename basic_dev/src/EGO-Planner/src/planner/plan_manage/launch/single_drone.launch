@@ -13,21 +13,30 @@
         <arg name="map_size_y" value="$(arg map_size_y)"/>
         <arg name="map_size_z" value="$(arg map_size_z)"/>
         <arg name="odom_topic" value="$(arg odom_topic)"/>
-        <arg name="flight_type" value="1"/>
+        <arg name="flight_type" value="2"/>
 
-        <arg name="point_num" default="4"/>
+        <arg name="point_num" default="7"/>
         <arg name="target0_x" default="44.0"/>
-        <arg name="target0_y" default="-4.0"/>
+        <arg name="target0_y" default="0.0"/>
         <arg name="target0_z" default="3.0"/>
         <arg name="target1_x" default="70.0"/>
-        <arg name="target1_y" default="-7.0"/>
-        <arg name="target1_z" default="6.0"/>
-        <arg name="target2_x" default="120.0"/>
-        <arg name="target2_y" default="-15.0"/>
+        <arg name="target1_y" default="0.0"/>
+        <arg name="target1_z" default="5.0"/>
+        <arg name="target2_x" default="100.0"/>
+        <arg name="target2_y" default="0.0"/>
         <arg name="target2_z" default="8.0"/>
         <arg name="target3_x" default="150.0"/>
-        <arg name="target3_y" default="-1"/>
-        <arg name="target3_z" default="1.0"/>
+        <arg name="target3_y" default="0.0"/>
+        <arg name="target3_z" default="11.0"/>
+        <arg name="target4_x" default="170.0"/>
+        <arg name="target4_y" default="0.0"/>
+        <arg name="target4_z" default="14.0"/>
+        <arg name="target5_x" default="200.0"/>
+        <arg name="target5_y" default="0.0"/>
+        <arg name="target5_z" default="20.0"/>
+        <arg name="target6_x" default="235"/>
+        <arg name="target6_y" default="10.1"/>
+        <arg name="target6_z" default="25.0"/>
     </include>
 
     <include file="$(find px4ctrl)/launch/ctrl_md.launch"/>

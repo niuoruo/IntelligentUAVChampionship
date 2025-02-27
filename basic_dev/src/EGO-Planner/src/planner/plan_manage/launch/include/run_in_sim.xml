@@ -24,6 +24,21 @@
     <arg name="target4_x" default="0.0"/>
     <arg name="target4_y" default="0.0"/>
     <arg name="target4_z" default="0.0"/>
+    <arg name="target5_x" default="0.0"/>
+    <arg name="target5_y" default="0.0"/>
+    <arg name="target5_z" default="0.0"/>
+    <arg name="target6_x" default="0.0"/>
+    <arg name="target6_y" default="0.0"/>
+    <arg name="target6_z" default="0.0"/>
+    <arg name="target7_x" default="0.0"/>
+    <arg name="target7_y" default="0.0"/>
+    <arg name="target7_z" default="0.0"/>
+    <arg name="target8_x" default="0.0"/>
+    <arg name="target8_y" default="0.0"/>
+    <arg name="target8_z" default="0.0"/>
+    <arg name="target9_x" default="0.0"/>
+    <arg name="target9_y" default="0.0"/>
+    <arg name="target9_z" default="0.0"/>
     <!-- topic of your odometry such as VIO or LIO -->
     <arg name="odom_topic"/>
     <!-- main algorithm params -->
@@ -47,9 +62,9 @@
         <arg name="fx" value="387.229248046875"/>
         <arg name="fy" value="387.229248046875"/>
         <!-- maximum velocity, acceleration and jerk the drone will reach -->
-        <arg name="max_vel" value="0.5" />
-        <arg name="max_acc" value="1.0" />
-        <arg name="max_jer" value="3.0" />
+        <arg name="max_vel" value="5.0" />
+        <arg name="max_acc" value="3.0" />
+        <arg name="max_jer" value="5.0" />
         <!--always set to 1.5 times grater than sensing horizen-->
         <arg name="planning_horizon" value="20.0" />
         <arg name="use_multitopology_trajs" value="false" />
@@ -74,6 +89,21 @@
         <arg name="point4_x" value="$(arg target4_x)" />
         <arg name="point4_y" value="$(arg target4_y)" />
         <arg name="point4_z" value="$(arg target4_z)" />
+        <arg name="point5_x" value="$(arg target5_x)" />
+        <arg name="point5_y" value="$(arg target5_y)" />
+        <arg name="point5_z" value="$(arg target5_z)" />
+        <arg name="point6_x" value="$(arg target6_x)" />
+        <arg name="point6_y" value="$(arg target6_y)" />
+        <arg name="point6_z" value="$(arg target6_z)" />
+        <arg name="point7_x" value="$(arg target7_x)" />
+        <arg name="point7_y" value="$(arg target7_y)" />
+        <arg name="point7_z" value="$(arg target7_z)" />
+        <arg name="point8_x" value="$(arg target8_x)" />
+        <arg name="point8_y" value="$(arg target8_y)" />
+        <arg name="point8_z" value="$(arg target8_z)" />
+        <arg name="point9_x" value="$(arg target9_x)" />
+        <arg name="point9_y" value="$(arg target9_y)" />
+        <arg name="point9_z" value="$(arg target9_z)" />
     </include>
     <!-- trajectory server -->
     <node pkg="ego_planner" name="drone_$(arg drone_id)_traj_server" type="traj_server" output="screen">

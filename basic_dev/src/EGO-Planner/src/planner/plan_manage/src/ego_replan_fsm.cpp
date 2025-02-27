@@ -154,13 +154,21 @@ namespace ego_planner
 
     case REPLAN_TRAJ:
     {
-
       if (planFromLocalTraj(1))
       {
         changeFSMExecState(EXEC_TRAJ, "FSM");
       }
+      else if((final_goal_ - odom_pos_).norm() < 12.0 &&
+              (target_type_ == TARGET_TYPE::PRESET_TARGET) &&
+              (wpt_id_ < waypoint_num_ - 1))
+      {
+        wpt_id_++;
+        changeFSMExecState(EXEC_TRAJ, "FSM");
+        planNextWaypoint(wps_[wpt_id_]);
+      }
       else
       {
+        std::cout << (final_goal_ - odom_pos_).norm() << std::endl;
         changeFSMExecState(REPLAN_TRAJ, "FSM");
       }
 
@@ -179,9 +187,18 @@ namespace ego_planner
       const PtsChk_t* chk_ptr = &planner_manager_->traj_.local_traj.pts_chk;
       bool close_to_current_traj_end = (chk_ptr->size() >= 1 && chk_ptr->back().size() >= 1) ? chk_ptr->back().back().first - t_cur < emergency_time_ : 0; // In case of empty vector
 
-      if (mondifyInCollisionFinalGoal()) // case 1: find that current goal is in obstacles
+      if (planner_manager_->grid_map_->getInflateOccupancy(final_goal_)) // case 1: find that current goal is in obstacles
       {
-        // pass
+        if ((target_type_ == TARGET_TYPE::PRESET_TARGET) &&
+            (wpt_id_ < waypoint_num_ - 1))
+        {
+          wpt_id_++;
+          planNextWaypoint(wps_[wpt_id_]);
+        }
+        else
+        {
+          mondifyInCollisionFinalGoal();
+        }
       }
       else if ((target_type_ == TARGET_TYPE::PRESET_TARGET) &&
                (wpt_id_ < waypoint_num_ - 1) &&
@@ -475,8 +492,8 @@ namespace ego_planner
     LocalTrajData *info = &planner_manager_->traj_.local_traj;
     double t_cur = ros::Time::now().toSec() - info->start_time;
 
-    start_pt_ = odom_pos_;
-    start_vel_ = odom_vel_;
+    start_pt_ = info->traj.getPos(t_cur);
+    start_vel_ = info->traj.getVel(t_cur);
     start_acc_ = info->traj.getAcc(t_cur);
 
     bool success = callReboundReplan(false, false);

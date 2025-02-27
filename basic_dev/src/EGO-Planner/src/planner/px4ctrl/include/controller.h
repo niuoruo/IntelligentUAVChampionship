@@ -59,6 +59,7 @@ public:
 	Eigen::Matrix3d Kp;
 	Eigen::Matrix3d Kv;
 	Eigen::Matrix3d Kvi;
+	Eigen::Matrix3d Kvd;
 	Eigen::Matrix3d Ka;
 	double Kyaw;
 
@@ -67,7 +68,7 @@ public:
 	Controller(Parameter_t&);
 	void config_gain(const Parameter_t::Gain& gain);
 	void config();
-	void update(const Desired_State_t& des, const Odom_Data_t& odom, 
+	void update(const Desired_State_t& des, const Odom_Data_t& odom, const Imu_Data_t& imu, 
 		Controller_Output_t& u, SO3_Controller_Output_t& u_so3
 	);
 	Controller_Output_t computeNominalReferenceInputs(

@@ -12,6 +12,7 @@ public:
 		double Kp0,Kp1,Kp2;
 		double Kv0,Kv1,Kv2;
 		double Kvi0,Kvi1,Kvi2;
+		double Kvd0,Kvd1,Kvd2;
 		double Ka0,Ka1,Ka2;
 		double Kyaw;
 		double Krp;
@@ -52,11 +53,16 @@ public:
 	double vz_error_max;
 	double yaw_error_max;
 
+	double Kp_gain;
+	double thresh;
+	double Kdrp;
+	double Kdyaw;
+	double Kyawd;
+	double Krpd;
+
 	double C_t;
 	double C_M;
 	double arm_length;
-	double Kp_ct;
-	double Kp_cm;
 	double sqrtpwm2rads;
 	double Ixx;
 	double Iyy;

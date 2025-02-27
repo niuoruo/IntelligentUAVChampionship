@@ -1,4 +1,4 @@
-mass        : 0.9
+mass        : 0.91
 gra         : 9.81
 # hov_percent : 0.148406   # Thrust percentage in Stabilize/Arco mode
 hov_percent : 0.00446
@@ -17,72 +17,34 @@ perform_aerodynamics_compensation: false
 
 hover:
     use_hov_percent_kf: false
-    #hzchzc
     percent_lower_limit: 0.00
     percent_higher_limit: 100000
 
-# gain:
-#     hover:
-#         Kp0: 1.7 #1.5
-#         Kp1: 1.7 #5
-#         Kp2: 1.7
-#         Kv0: 1.5 #6
-#         Kv1: 1.5 #6
-#         Kv2: 1.5 #6
-#         Kvi0: 0.2
-#         Kvi1: 0.2
-#         Kvi2: 0.2
-#         Ka0: 1.0
-#         Ka1: 1.0
-#         Ka2: 1.0
-#         Kyaw: 6.0 # 15.0
-#         Krp: 15.0 #25
-#     track:
-#         Kp0: 1.7 #1.5
-#         Kp1: 1.7 #5
-#         Kp2: 1.7
-#         Kv0: 1.5 #6
-#         Kv1: 1.5 #6
-#         Kv2: 1.5 #6
-#         Kvi0: 0.2
-#         Kvi1: 0.2
-#         Kvi2: 0.2
-#         Ka0: 1.0
-#         Ka1: 1.0
-#         Ka2: 1.0
-#         Kyaw: 6.0 # 15.0
-#         Krp: 15.0 #25
 gain:
-    hover:
-        Kp0: 1.5 #1.5
-        Kp1: 1.5 #5
-        Kp2: 2.0
-        Kv0: 6 #6
-        Kv1: 6 #6
-        Kv2: 6 #6
-        Kvi0: 1.0
-        Kvi1: 1.0
-        Kvi2: 1.0
-        Ka0: 1.0
-        Ka1: 1.0
-        Ka2: 1.0
-        Kyaw: 2.0 # 15.0
-        Krp: 5.0 #25
     track:
-        Kp0: 1.5 #1.5
-        Kp1: 1.5 #5
-        Kp2: 2.0
-        Kv0: 6 #6
-        Kv1: 6 #6
-        Kv2: 6 #6
-        Kvi0: 1.0
-        Kvi1: 1.0
-        Kvi2: 1.0
+        Kp_gain: 1.7
+        thresh: 0.1
+        Kp0: 1.0 #1.5
+        Kp1: 1.0 #5
+        Kp2: 1.15
+        Kv0: 1.1 #6
+        Kv1: 1.1 #6
+        Kv2: 1.5 #6
+        Kvi0: 0.1
+        Kvi1: 0.1
+        Kvi2: 0.1
+        Kvd0: 0.15
+        Kvd1: 0.15
+        Kvd2: 0.15
         Ka0: 1.0
         Ka1: 1.0
-        Ka2: 1.0
-        Kyaw: 2.0 # 15.0
-        Krp: 5.0 #25
+        Ka2: 1.2
+        Kyaw: 5.0 # 15.0
+        Krp: 8.0 #25
+        Kdrp: 0.5 #25
+        Kdyaw: 0.5 #25
+        Kyawd: 15.0 
+        Krpd: 10.0
 
 msg_timeout:
     odom: 0.5
@@ -91,12 +53,11 @@ msg_timeout:
     imu:  0.5
 
 pwm_param:
-    C_t: 0.000367717
-    C_M: 4.888486e-6
+    C_t: 0.000367892
+    C_M: 4.889021e-6
     arm_length:  0.18 # m
-    Kp_ct: 1 
-    Kp_cm: 1 
-    sqrtpwm2rads: 1159.74
+
+    sqrtpwm2rads: 1159.7396
     Ixx: 0.0046890742
     Iyy: 0.0069312
     Izz: 0.010421166

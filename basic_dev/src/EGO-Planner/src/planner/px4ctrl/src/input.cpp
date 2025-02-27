@@ -73,7 +73,23 @@ Odom_Data_t::Odom_Data_t() {
 
 void Odom_Data_t::feed(nav_msgs::OdometryConstPtr pMsg) {
     msg = *pMsg;
+    static double last_time = ros::Time::now().toSec();
     rcv_stamp = ros::Time::now();
+    static double ax = 0.0;
+    static double ay = 0.0;
+    static double az = 0.0;
+
+    double k = (1.0 / (1.0 + 1.0/(2.0 * 3.14 * (rcv_stamp.toSec() - last_time) * 5)));
+    ax += k * (msg.twist.twist.linear.x - ax);
+    ay += k * (msg.twist.twist.linear.y - ay);
+    az += k * (msg.twist.twist.linear.z - az);
+
+    msg.twist.twist.linear.x = ax;
+    msg.twist.twist.linear.y = ay;
+    msg.twist.twist.linear.z = az;
+    
+    last_time = rcv_stamp.toSec();
+
     uav_utils::extract_odometry(pMsg, p, v, q, w);
     odom_init = true;
 }
@@ -99,6 +115,7 @@ void Imu_Data_t::feed(sensor_msgs::ImuConstPtr pMsg) {
     q.y() = msg.orientation.y;
     q.z() = msg.orientation.z;
     q.w() = msg.orientation.w;
+
     imu_init = true;
 }
 

@@ -36,6 +36,8 @@ nav_msgs::Odometry odom_;
 
 // yaw control
 double roll_, pitch_, yaw_, last_yawdot_, slowly_flip_yaw_target_, slowly_turn_to_center_target_;
+double first_yaw_;
+bool odom_inited = false;
 double time_forward_;
 
 Eigen::VectorXf X_des, X_real;
@@ -219,6 +221,12 @@ void odometryCallback(const nav_msgs::OdometryConstPtr &msg)
     odom_.pose.pose.orientation.w);
   tf::Matrix3x3 m(q);
   m.getRPY(roll_, pitch_, yaw_);
+
+  if (!odom_inited)
+    first_yaw_ = yaw_;
+
+    odom_inited = true;
+
 }
 
 void cmdCallback(const ros::TimerEvent &e)
@@ -304,8 +312,7 @@ void cmdCallback(const ros::TimerEvent &e)
   pos_cmd.jerk.x = jer(0);
   pos_cmd.jerk.y = jer(1);
   pos_cmd.jerk.z = jer(2);
-  yaw_yawdot = calculate_yaw(t_cur, pos, (time_now - time_last).toSec());
-  pos_cmd.yaw = 0.0;
+  pos_cmd.yaw = first_yaw_;
   position_cmd_pub.publish(pos_cmd);
 
   // quadrotor_msgs::PositionCommand pos_cmd;

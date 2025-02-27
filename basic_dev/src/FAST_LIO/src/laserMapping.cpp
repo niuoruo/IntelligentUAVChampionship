@@ -92,7 +92,7 @@ double cube_len = 0, HALF_FOV_COS = 0, FOV_DEG = 0, total_distance = 0, lidar_en
 int    effct_feat_num = 0, time_log_counter = 0, scan_count = 0, publish_count = 0;
 int    iterCount = 0, feats_down_size = 0, NUM_MAX_ITERATIONS = 0, laserCloudValidNum = 0, pcd_save_interval = -1, pcd_index = 0;
 bool   point_selected_surf[100000] = {0};
-bool   lidar_pushed, flg_first_ekf = false, flg_first_scan = true, flg_exit = false, flg_EKF_inited, flg_updated;
+bool   lidar_pushed, flg_first_ekf = false, flg_pose_init = true, flg_first_scan = true, flg_exit = false, flg_EKF_inited, flg_updated;
 bool   scan_pub_en = false, dense_pub_en = false, scan_body_pub_en = false;
 int lidar_type;
 
@@ -133,6 +133,9 @@ V3D IMU_T_wrt_BOT(Zero3d);
 M3D IMU_R_wrt_BOT(Eye3d);
 V3D BOT_T_wrt_IMU(Zero3d);
 M3D BOT_R_wrt_IMU(Eye3d);
+V3D init_pose_T(Zero3d);
+M3D init_pose_R(Eye3d);
+
 
 /*** EKF inputs and output ***/
 MeasureGroup Measures;
@@ -197,8 +200,8 @@ void pointBodyToWorld(PointType const * const pi, PointType * const po)
 void pointBodyToMap(PointType const * const pi, PointType * const po)
 {
     V3D p_body(pi->x, pi->y, pi->z);
-    V3D p_global(BOT_R_wrt_IMU * (state_point.rot * (state_point.offset_R_L_I*p_body + state_point.offset_T_L_I) + 
-                         state_point.pos) + BOT_T_wrt_IMU);
+    V3D p_global(init_pose_R * BOT_R_wrt_IMU * (state_point.rot * (state_point.offset_R_L_I*p_body + state_point.offset_T_L_I) + 
+                         state_point.pos) + BOT_T_wrt_IMU + init_pose_T);
 
     po->x = p_global(0);
     po->y = p_global(1);
@@ -221,8 +224,8 @@ template<typename T>
 void pointBodyToMap(const Matrix<T, 3, 1> &pi, Matrix<T, 3, 1> &po)
 {
     V3D p_body(pi[0], pi[1], pi[2]);
-    V3D p_global(BOT_R_wrt_IMU * (state_point.rot * (state_point.offset_R_L_I*p_body + state_point.offset_T_L_I) + 
-                 state_point.pos) + BOT_T_wrt_IMU);
+    V3D p_global(init_pose_R * BOT_R_wrt_IMU * (state_point.rot * (state_point.offset_R_L_I*p_body + state_point.offset_T_L_I) + 
+                 state_point.pos) + BOT_T_wrt_IMU + init_pose_T);
 
     po[0] = p_global(0);
     po[1] = p_global(1);
@@ -243,8 +246,8 @@ void RGBpointBodyToWorld(PointType const * const pi, PointType * const po)
 void RGBpointBodyToMap(PointType const * const pi, PointType * const po)
 {
     V3D p_body(pi->x, pi->y, pi->z);
-    V3D p_global(BOT_R_wrt_IMU * (state_point.rot * (state_point.offset_R_L_I*p_body + state_point.offset_T_L_I) + 
-                 state_point.pos) + BOT_T_wrt_IMU);
+    V3D p_global(init_pose_R * BOT_R_wrt_IMU * (state_point.rot * (state_point.offset_R_L_I*p_body + state_point.offset_T_L_I) + 
+                 state_point.pos) + BOT_T_wrt_IMU + init_pose_T);
 
     po->x = p_global(0);
     po->y = p_global(1);
@@ -666,10 +669,8 @@ void set_posestamp(T & out)
     M3D init_R_lidar = realtime_state_point.rot.toRotationMatrix();
 
     M3D MAP_R_BOT = BOT_R_wrt_IMU * init_R_lidar * IMU_R_wrt_BOT;
-    // Print roll, pitch, yaw
-    V3D euler_angles = MAP_R_BOT.eulerAngles(0, 1, 2); // ZYX order: yaw, pitch, roll
 
-    Eigen::Quaterniond q(MAP_R_BOT);
+    Eigen::Quaterniond q(init_pose_R * MAP_R_BOT);
     tf::Quaternion tf_q(q.x(), q.y(), q.z(), q.w());
     tf::quaternionTFToMsg(tf_q, out.pose.orientation);
 
@@ -678,7 +679,7 @@ void set_posestamp(T & out)
                      realtime_state_point.pos(1), 
                      realtime_state_point.pos(2));
     V3D MAP_T_lidar(BOT_R_wrt_IMU * init_T_lidar + BOT_T_wrt_IMU);
-    V3D MAP_T_BOT(MAP_T_lidar - MAP_R_BOT * BOT_T_wrt_IMU);
+    V3D MAP_T_BOT(init_pose_R * (MAP_T_lidar - MAP_R_BOT * BOT_T_wrt_IMU) + init_pose_T);
 
     out.pose.position.x = MAP_T_BOT(0);
     out.pose.position.y = MAP_T_BOT(1);
@@ -691,7 +692,7 @@ void set_velstamp(T & out)
     V3D init_T_lidar(realtime_state_point.vel(0), 
                      realtime_state_point.vel(1), 
                      realtime_state_point.vel(2));
-    V3D MAP_T_lidar(BOT_R_wrt_IMU * init_T_lidar);
+    V3D MAP_T_lidar(init_pose_R * BOT_R_wrt_IMU * init_T_lidar);
 
     out.twist.linear.x = MAP_T_lidar(0);
     out.twist.linear.y = MAP_T_lidar(1);
@@ -875,6 +876,15 @@ void h_share_model(state_ikfom &s, esekfom::dyn_share_datastruct<double> &ekfom_
     solve_time += omp_get_wtime() - solve_start_;
 }
 
+void initpose_cbk(const geometry_msgs::PoseStamped::ConstPtr &msg)
+{
+    init_pose_R = BOT_R_wrt_IMU * 
+                  Eigen::Quaterniond(msg->pose.orientation.w, msg->pose.orientation.x, msg->pose.orientation.y, msg->pose.orientation.z).toRotationMatrix() * IMU_R_wrt_BOT;
+    init_pose_T = BOT_R_wrt_IMU * V3D(msg->pose.position.x, msg->pose.position.y, msg->pose.position.z);
+
+    flg_pose_init = true;
+}
+
 int main(int argc, char** argv)
 {
     ros::init(argc, argv, "laserMapping");
@@ -945,8 +955,17 @@ int main(int argc, char** argv)
     // 初始变换矩阵
     IMU_T_wrt_BOT<<VEC_FROM_ARRAY(extrinT_IMU_BOT);
     IMU_R_wrt_BOT<<MAT_FROM_ARRAY(extrinR_IMU_BOT);
+
     BOT_T_wrt_IMU = -IMU_T_wrt_BOT;
     BOT_R_wrt_IMU = IMU_R_wrt_BOT.inverse();
+
+    ros::Subscriber sub_init_pose = nh.subscribe("/airsim_node/initial_pose", 200000, initpose_cbk);
+    ros::Rate rate_init(100);
+    while (!flg_pose_init)
+    {
+        ros::spinOnce();
+        rate_init.sleep();
+    }
 
     p_imu->set_extrinsic(Lidar_T_wrt_IMU, Lidar_R_wrt_IMU);
     p_imu->set_gyr_cov(V3D(gyr_cov, gyr_cov, gyr_cov));

@@ -11,6 +11,7 @@ namespace ego_planner
     have_odom_ = false;
     have_recv_pre_agent_ = false;
     flag_escape_emergency_ = true;
+    flag_points_subd_ = false;
     mandatory_stop_ = false;
 
     /*  fsm param  */
@@ -66,9 +67,8 @@ namespace ego_planner
     {
       trigger_sub_ = nh.subscribe("/traj_start_trigger", 1, &EGOReplanFSM::triggerCallback, this);
 
-      ROS_INFO("Wait for 2 second.");
-      int count = 0;
-      while (ros::ok() && count++ < 2000)
+      ROS_INFO("Wait for points.");
+      while (ros::ok() && flag_points_subd_ == false)
       {
         ros::spinOnce();
         ros::Duration(0.001).sleep();

@@ -23,6 +23,7 @@
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #include <pcl_conversions/pcl_conversions.h>
 #include <geometry_msgs/Point.h> // Include the necessary header for geometry_msgs
+#include <path_sender/WayPoints.h>
 #endif
 
 class PathSender

@@ -94,7 +94,7 @@ public:
 																	 const Eigen::Vector3d& torque);
 	
 
-	void publish_ctrl(const Controller_Output_t& u, const ros::Time& stamp);
+	void publish_ctrl(const Controller_Output_t& u, const ros::Time& stamp, bool is_init);
 	void publish_zero_ctrl(const ros::Time& stamp);
 
 private:

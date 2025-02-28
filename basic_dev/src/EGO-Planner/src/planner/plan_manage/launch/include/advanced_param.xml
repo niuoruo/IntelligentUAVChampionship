@@ -102,19 +102,19 @@
         <param name="fsm/waypoint9_x" value="$(arg point9_x)" type="double"/>
         <param name="fsm/waypoint9_y" value="$(arg point9_y)" type="double"/>
         <param name="fsm/waypoint9_z" value="$(arg point9_z)" type="double"/>
-        <param name="grid_map/resolution" value="0.1" />
+        <param name="grid_map/resolution" value="0.2" />
         <param name="grid_map/map_size_x" value="$(arg map_size_x_)" />
         <param name="grid_map/map_size_y" value="$(arg map_size_y_)" />
         <param name="grid_map/map_size_z" value="$(arg map_size_z_)" />
-        <param name="grid_map/local_update_range_x" value="10.0" />
-        <param name="grid_map/local_update_range_y" value="10.0" />
-        <param name="grid_map/local_update_range_z" value="6.0" /> <!-- different meaning between grid_map.cpp and grid_map_bigmap.cpp -->
+        <param name="grid_map/local_update_range_x" value="20.0" />
+        <param name="grid_map/local_update_range_y" value="20.0" />
+        <param name="grid_map/local_update_range_z" value="10.0" /> <!-- different meaning between grid_map.cpp and grid_map_bigmap.cpp -->
         <param name="grid_map/obstacles_inflation" value="0.1" />
         <param name="grid_map/local_map_margin" value="10"/>
         <param name="grid_map/enable_virtual_wall" value="true"/>
         <param name="grid_map/virtual_ceil" value="200.0"/>
         <param name="grid_map/virtual_ground" value="-0.1"/>
-        <param name="grid_map/ground_height" value="-3.0"/>
+        <param name="grid_map/ground_height" value="-10.0"/>
         <!-- camera parameter -->
         <param name="grid_map/cx" value="$(arg cx)"/>
         <param name="grid_map/cy" value="$(arg cy)"/>

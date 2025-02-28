@@ -38,7 +38,7 @@ namespace ego_planner
     planner_manager_->initPlanModules(nh, visualization_);
 
     have_trigger_ = !flag_realworld_experiment_;
-    no_replan_thresh_ = 0.5 * emergency_time_ * planner_manager_->pp_.max_vel_;
+    no_replan_thresh_ = 2.0 * emergency_time_ * planner_manager_->pp_.max_vel_;
 
     /* callback */
     exec_timer_ = nh.createTimer(ros::Duration(0.01), &EGOReplanFSM::execFSMCallback, this);

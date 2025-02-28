@@ -255,7 +255,7 @@ void Controller::update(
 	u.yaw_rate = reference_inputs.yaw_rate+feedback_bodyrates.z();
 
 	// ROS_INFO_STREAM("roll_rate: "<<u.roll_rate);
-	double limit_rate = 1.5*3.14;
+	double limit_rate = 3.0*3.14;
 	if(u.roll_rate>=limit_rate)
 		ROS_INFO("ROLL RATE LIMIT!");
 	if(u.pitch_rate>=limit_rate)
@@ -310,8 +310,45 @@ airsim_ros::RotorPWM Controller::computePWM(
 	return pwm;
 }
 
-void Controller::publish_ctrl(const Controller_Output_t& u, const ros::Time& stamp)
+void Controller::publish_ctrl(const Controller_Output_t& u, const ros::Time& stamp, bool is_init)
 {
+
+	static int cnt = 0;
+	if (cnt < 50)
+	{
+		std::cout << "here" << std::endl;
+		airsim_ros::RotorPWM pwm;
+		pwm.rotorPWM0 = 0.178087130188 + 0.02;
+		pwm.rotorPWM1 = 0.178087130188 + 0.02;
+		pwm.rotorPWM2 = 0.178087130188 + 0.02;
+		pwm.rotorPWM3 = 0.178087130188 + 0.02;
+		ctrl_PWM_pub.publish(pwm);
+		cnt++;
+		return;
+	}
+	else if (cnt >= 50 && cnt < 100)
+	{
+		std::cout << "here" << std::endl;
+		airsim_ros::RotorPWM pwm;
+		pwm.rotorPWM0 = 0.178087130188 - 0.02;
+		pwm.rotorPWM1 = 0.178087130188 - 0.02;
+		pwm.rotorPWM2 = 0.178087130188 - 0.02;
+		pwm.rotorPWM3 = 0.178087130188 - 0.02;
+		ctrl_PWM_pub.publish(pwm);
+		cnt++;
+		return;
+	}
+	else if (!is_init)
+	{
+		airsim_ros::RotorPWM pwm;
+		pwm.rotorPWM0 = 0.178087130188;
+		pwm.rotorPWM1 = 0.178087130188;
+		pwm.rotorPWM2 = 0.178087130188;
+		pwm.rotorPWM3 = 0.178087130188;
+		ctrl_PWM_pub.publish(pwm);
+		return;
+	}
+
 	mavros_msgs::AttitudeTarget msg;
 
 	msg.header.stamp = stamp;

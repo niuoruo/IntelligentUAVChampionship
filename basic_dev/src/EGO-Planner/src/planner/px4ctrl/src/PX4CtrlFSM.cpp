@@ -22,7 +22,7 @@ void PX4CtrlFSM::process()
 	controller.config_gain(param.track_gain);
 	process_cmd_control(u, u_so3);
 
-	controller.publish_ctrl(u, now_time);
+	controller.publish_ctrl(u, now_time, cmd_data.cmd_init);
 	hov_thr_kf.simple_update(u.des_v_real, odom_data.v );
 	// This line may not take effect according to param.hov.use_hov_percent_kf
 	param.config_full_thrust(hov_thr_kf.get_hov_thr());
@@ -128,5 +128,5 @@ void PX4CtrlFSM::toggle_offboard_mode(bool on_off)
 	
 }
 bool PX4CtrlFSM::px4_init(){
-	return (odom_data.odom_init&&imu_data.imu_init&&cmd_data.cmd_init);
+	return (odom_data.odom_init&&imu_data.imu_init);
 }

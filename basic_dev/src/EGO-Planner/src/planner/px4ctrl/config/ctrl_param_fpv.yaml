@@ -22,10 +22,10 @@ hover:
 
 gain:
     track:
-        Kp_gain: 1.4
-        thresh: 0.1
-        Kp0: 0.6 #1.5
-        Kp1: 0.6 #5
+        Kp_gain: 1.5
+        thresh: 0.2
+        Kp0: 0.9 #1.5
+        Kp1: 0.9 #5
         Kp2: 1.15
         Kpd0: 0.1
         Kpd1: 0.1

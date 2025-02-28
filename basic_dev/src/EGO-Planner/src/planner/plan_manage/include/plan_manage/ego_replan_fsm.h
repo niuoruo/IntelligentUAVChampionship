@@ -54,7 +54,8 @@ namespace ego_planner
     {
       MANUAL_TARGET = 1,
       PRESET_TARGET = 2,
-      REFENCE_PATH = 3
+      REFENCE_PATH = 3,
+      SUBED_POINTS = 4
     };
 
     /* planning utils */

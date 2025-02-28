@@ -66,8 +66,21 @@ namespace ego_planner
     else if (target_type_ == TARGET_TYPE::PRESET_TARGET)
     {
       trigger_sub_ = nh.subscribe("/traj_start_trigger", 1, &EGOReplanFSM::triggerCallback, this);
-      points_sub_ = nh.subscribe("/waypoints", 10, &EGOReplanFSM::triggerCallback, this);
 
+      ROS_INFO("Wait for 2 second.");
+      int count = 0;
+      while (ros::ok() && count++ < 2000)
+      {
+        ros::spinOnce();
+        ros::Duration(0.001).sleep();
+      }
+
+      readGivenWpsAndPlan();
+    }
+    else if (target_type_ == TARGET_TYPE::SUBED_POINTS)
+    {
+      points_sub_ = nh.subscribe("/waypoints", 10, &EGOReplanFSM::triggerCallback, this);
+      
       ROS_INFO("Wait for points.");
       while (ros::ok() && flag_points_subd_ == false)
       {

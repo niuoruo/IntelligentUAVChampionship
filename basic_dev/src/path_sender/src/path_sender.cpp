@@ -115,7 +115,7 @@ void PathSender::end_pose_cb(const geometry_msgs::PoseStamped::ConstPtr& msg)
   {
     if(abs(msg->pose.position.x -station[i].x) <5)
     {
-      end_num = 2;
+      end_num = i;
       end_num_get = true;
       break;
     }

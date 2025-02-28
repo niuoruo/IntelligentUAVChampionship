@@ -863,9 +863,9 @@ namespace ego_planner
       MINCO_msg.duration[i] = durs[i];
   }
 
-  void EGOReplanFSM::WayPointsCallback(const path_sender::WayPoints &msg);
+  void EGOReplanFSM::WayPointsCallback(const path_sender::WayPoints &msg)
   {
-    waypoint_num_ = msg.waypoints.size();
+    waypoint_num_ = msg.points.size();
     for (int i = 0; i < waypoint_num_; i++)
     {
       waypoints_[i][0] = msg.points[i].x;

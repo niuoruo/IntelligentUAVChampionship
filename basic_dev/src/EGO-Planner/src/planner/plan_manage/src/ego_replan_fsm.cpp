@@ -79,8 +79,8 @@ namespace ego_planner
     }
     else if (target_type_ == TARGET_TYPE::SUBED_POINTS)
     {
-      points_sub_ = nh.subscribe("/waypoints", 10, &EGOReplanFSM::triggerCallback, this);
-      
+      points_sub_ = nh.subscribe("/waypoints", 10, &EGOReplanFSM::WayPointsCallback, this);
+
       ROS_INFO("Wait for points.");
       while (ros::ok() && flag_points_subd_ == false)
       {
@@ -173,7 +173,7 @@ namespace ego_planner
         changeFSMExecState(EXEC_TRAJ, "FSM");
       }
       else if((final_goal_ - odom_pos_).norm() < 12.0 &&
-              (target_type_ == TARGET_TYPE::PRESET_TARGET) &&
+              (target_type_ == TARGET_TYPE::PRESET_TARGET || target_type_ == TARGET_TYPE::SUBED_POINTS) &&
               (wpt_id_ < waypoint_num_ - 1))
       {
         wpt_id_++;
@@ -203,7 +203,7 @@ namespace ego_planner
 
       if (planner_manager_->grid_map_->getInflateOccupancy(final_goal_)) // case 1: find that current goal is in obstacles
       {
-        if ((target_type_ == TARGET_TYPE::PRESET_TARGET) &&
+        if ((target_type_ == TARGET_TYPE::PRESET_TARGET || target_type_ == TARGET_TYPE::SUBED_POINTS) &&
             (wpt_id_ < waypoint_num_ - 1))
         {
           wpt_id_++;
@@ -214,7 +214,7 @@ namespace ego_planner
           mondifyInCollisionFinalGoal();
         }
       }
-      else if ((target_type_ == TARGET_TYPE::PRESET_TARGET) &&
+      else if ((target_type_ == TARGET_TYPE::PRESET_TARGET || target_type_ == TARGET_TYPE::SUBED_POINTS) &&
                (wpt_id_ < waypoint_num_ - 1) &&
                (final_goal_ - pos).norm() < no_replan_thresh_) // case 2: assign the next waypoint
       {
@@ -226,7 +226,7 @@ namespace ego_planner
         have_target_ = false;
         have_trigger_ = false;
 
-        if (target_type_ == TARGET_TYPE::PRESET_TARGET)
+        if (target_type_ == TARGET_TYPE::PRESET_TARGET || target_type_ == TARGET_TYPE::SUBED_POINTS)
         {
           // prepare for next round
           wpt_id_ = 0;
@@ -878,6 +878,9 @@ namespace ego_planner
 
   void EGOReplanFSM::WayPointsCallback(const path_sender::WayPoints &msg)
   {
+    if (flag_points_subd_)
+      return;
+
     waypoint_num_ = msg.points.size();
     for (int i = 0; i < waypoint_num_; i++)
     {
@@ -885,6 +888,8 @@ namespace ego_planner
       waypoints_[i][1] = msg.points[i].y;
       waypoints_[i][2] = msg.points[i].z;
     }
+
+    std::cout << "Received " << waypoint_num_ << " waypoints." << std::endl;
 
     flag_points_subd_ = true;
   }

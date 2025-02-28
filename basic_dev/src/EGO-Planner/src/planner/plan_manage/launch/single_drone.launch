@@ -13,7 +13,7 @@
         <arg name="map_size_y" value="$(arg map_size_y)"/>
         <arg name="map_size_z" value="$(arg map_size_z)"/>
         <arg name="odom_topic" value="$(arg odom_topic)"/>
-        <arg name="flight_type" value="2"/>
+        <arg name="flight_type" value="4"/>
 
         <arg name="point_num" default="7"/>
         <arg name="target0_x" default="1306.0"/>

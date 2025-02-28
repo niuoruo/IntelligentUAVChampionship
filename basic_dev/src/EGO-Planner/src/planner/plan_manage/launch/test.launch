@@ -108,7 +108,7 @@
         <param name="grid_map/visualization_truncate_height" value="1.9"/>
         <param name="grid_map/show_occ_time" value="false"/>
         <param name="grid_map/pose_type" value="1"/>
-        <param name="grid_map/frame_id" value="map"/>
+        <param name="grid_map/frame_id" value="odom"/>
         <!-- planner manager -->
         <param name="manager/max_vel" value="$(arg max_vel)" type="double"/>
         <param name="manager/max_acc" value="$(arg max_acc)" type="double"/>

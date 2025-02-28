@@ -7,7 +7,7 @@ void GridMap::initMap(ros::NodeHandle &nh)
   /* get parameter */
   // double x_size, y_size, z_size;
   node_.param("grid_map/pose_type", mp_.pose_type_, 1);
-  node_.param("grid_map/frame_id", mp_.frame_id_, string("map"));
+  node_.param("grid_map/frame_id", mp_.frame_id_, string("odom"));
   node_.param("grid_map/odom_depth_timeout", mp_.odom_depth_timeout_, 1.0);
 
   node_.param("grid_map/resolution", mp_.resolution_, -1.0);

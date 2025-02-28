@@ -36,7 +36,7 @@ void displayArrowList(const vector<Eigen::Vector3d> &start, const vector<Eigen::
   visualization_msgs::MarkerArray array;
 
   visualization_msgs::Marker arrow;
-  arrow.header.frame_id = "map";
+  arrow.header.frame_id = "odom";
   arrow.header.stamp = ros::Time::now();
   arrow.type = visualization_msgs::Marker::ARROW;
   arrow.action = action;

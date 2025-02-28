@@ -133,7 +133,7 @@ int main(int argc, char **argv)
           Eigen::Quaterniond q = Eigen::Quaterniond(rotation_vector);
 
           nav_msgs::Odometry msg;
-          msg.header.frame_id = string("map");
+          msg.header.frame_id = string("odom");
           msg.header.stamp = t_now;
           msg.child_frame_id = string("drone_") + to_string(id);
           msg.pose.pose.position.x = p(0);

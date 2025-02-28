@@ -183,7 +183,7 @@ void joy_sub_cb(const sensor_msgs::Joy::ConstPtr &msg)
   // publish odometry
   nav_msgs::Odometry odom_msg;
   odom_msg.header.stamp = t_now;
-  odom_msg.header.frame_id = "map";
+  odom_msg.header.frame_id = "odom";
   odom_msg.pose.pose.position.z = HEIGHT;
   odom_msg.twist.twist.linear.z = 0.0;
   odom_msg.pose.pose.orientation.x = 0.0;

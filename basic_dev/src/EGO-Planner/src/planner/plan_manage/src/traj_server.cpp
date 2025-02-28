@@ -101,7 +101,7 @@ std::pair<double, double> calculate_yaw(double t_cur, Eigen::Vector3d &pos, doub
   // Create and publish visualization marker
   static ros::Publisher marker_pub = ros::NodeHandle().advertise<visualization_msgs::Marker>("future_position", 10);
   visualization_msgs::Marker marker;
-  marker.header.frame_id = "map";
+  marker.header.frame_id = "odom";
   marker.header.stamp = ros::Time::now();
   marker.type = visualization_msgs::Marker::SPHERE;
   marker.action = visualization_msgs::Marker::ADD;
@@ -299,7 +299,7 @@ void cmdCallback(const ros::TimerEvent &e)
 
   quadrotor_msgs::PositionCommand pos_cmd;
   pos_cmd.header.stamp = time_now;
-  pos_cmd.header.frame_id = "map";
+  pos_cmd.header.frame_id = "odom";
   pos_cmd.position.x = pos(0);
   pos_cmd.position.y = pos(1);
   pos_cmd.position.z = pos(2);
@@ -317,7 +317,7 @@ void cmdCallback(const ros::TimerEvent &e)
 
   // quadrotor_msgs::PositionCommand pos_cmd;
   // pos_cmd.header.stamp = time_now;
-  // pos_cmd.header.frame_id = "map";
+  // pos_cmd.header.frame_id = "odom";
   // pos_cmd.position.x = 0.0;
   // pos_cmd.position.y = 0.0;
   // pos_cmd.position.z = 0.0;

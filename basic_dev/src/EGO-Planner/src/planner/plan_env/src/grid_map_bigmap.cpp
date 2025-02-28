@@ -45,7 +45,7 @@ void GridMap::initMap(ros::NodeHandle &nh)
   node_.param("grid_map/show_occ_time", mp_.show_occ_time_, false);
   node_.param("grid_map/pose_type", mp_.pose_type_, 1);
 
-  node_.param("grid_map/frame_id", mp_.frame_id_, string("map"));
+  node_.param("grid_map/frame_id", mp_.frame_id_, string("odom"));
   node_.param("grid_map/local_map_margin", mp_.local_map_margin_, 1);
   node_.param("grid_map/ground_height", mp_.ground_height_, 0.0);
 

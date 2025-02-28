@@ -131,7 +131,7 @@ namespace rviz_plugin_selected_points_publisher
           ros::Duration(0.1).sleep();
           
           geometry_msgs::PoseStamped goal_msg;
-          goal_msg.header.frame_id = std::string("map");
+          goal_msg.header.frame_id = std::string("odom");
           goal_msg.header.stamp = ros::Time::now();
           goal_msg.pose.position.x = intersection.x;
           goal_msg.pose.position.y = intersection.y;

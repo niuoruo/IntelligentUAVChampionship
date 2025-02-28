@@ -85,7 +85,7 @@ void odom_callback(const nav_msgs::Odometry::ConstPtr &msg)
   // Pose
   poseROS.header = msg->header;
   poseROS.header.stamp = msg->header.stamp;
-  poseROS.header.frame_id = string("map");
+  poseROS.header.frame_id = string("odom");
   poseROS.pose.position.x = pose(0);
   poseROS.pose.position.y = pose(1);
   poseROS.pose.position.z = pose(2);
@@ -102,7 +102,7 @@ void odom_callback(const nav_msgs::Odometry::ConstPtr &msg)
   yprVel(1) = -atan2(vel(2), norm(vel.rows(0, 1), 2));
   yprVel(2) = 0;
   q = R_to_quaternion(ypr_to_R(yprVel));
-  velROS.header.frame_id = string("map");
+  velROS.header.frame_id = string("odom");
   velROS.header.stamp = msg->header.stamp;
   velROS.ns = string("velocity");
   velROS.id = _drone_id;
@@ -171,7 +171,7 @@ void odom_callback(const nav_msgs::Odometry::ConstPtr &msg)
         }
       }
     }
-    covROS.header.frame_id = string("map");
+    covROS.header.frame_id = string("odom");
     covROS.header.stamp = msg->header.stamp;
     covROS.ns = string("covariance");
     covROS.id = _drone_id;
@@ -220,7 +220,7 @@ void odom_callback(const nav_msgs::Odometry::ConstPtr &msg)
         }
       }
     }
-    covVelROS.header.frame_id = string("map");
+    covVelROS.header.frame_id = string("odom");
     covVelROS.header.stamp = msg->header.stamp;
     covVelROS.ns = string("covariance_velocity");
     covVelROS.id = _drone_id;
@@ -250,7 +250,7 @@ void odom_callback(const nav_msgs::Odometry::ConstPtr &msg)
   ros::Time t = msg->header.stamp;
   if ((t - pt).toSec() > 0.5)
   {
-    trajROS.header.frame_id = string("map");
+    trajROS.header.frame_id = string("odom");
     trajROS.header.stamp = ros::Time::now();
     trajROS.ns = string("trajectory");
     trajROS.type = visualization_msgs::Marker::LINE_LIST;
@@ -291,7 +291,7 @@ void odom_callback(const nav_msgs::Odometry::ConstPtr &msg)
   }
 
   // Sensor availability
-  sensorROS.header.frame_id = string("map");
+  sensorROS.header.frame_id = string("odom");
   sensorROS.header.stamp = msg->header.stamp;
   sensorROS.ns = string("sensor");
   sensorROS.type = visualization_msgs::Marker::TEXT_VIEW_FACING;
@@ -388,7 +388,7 @@ void odom_callback(const nav_msgs::Odometry::ConstPtr &msg)
     string vision_s = _drone_id == -1 ? string("vision") : string("vision") + std::to_string(_drone_id);
     string height_s = _drone_id == -1 ? string("height") : string("height") + std::to_string(_drone_id);
 
-    broadcaster->sendTransform(tf::StampedTransform(transform, msg->header.stamp, string("map"), base_s));
+    broadcaster->sendTransform(tf::StampedTransform(transform, msg->header.stamp, string("odom"), base_s));
     broadcaster->sendTransform(tf::StampedTransform(transform45, msg->header.stamp, base_s, laser_s));
     broadcaster->sendTransform(tf::StampedTransform(transform45, msg->header.stamp, base_s, vision_s));
     broadcaster->sendTransform(tf::StampedTransform(transform90, msg->header.stamp, base_s, height_s));
@@ -455,7 +455,7 @@ int main(int argc, char **argv)
   n.param("color/a", color_a, 1.0);
   n.param("origin", origin, false);
   n.param("robot_scale", scale, 2.0);
-  n.param("frame_id", _frame_id, string("map"));
+  n.param("frame_id", _frame_id, string("odom"));
   n.param("rotate_yaw_deg", rotate_yaw, 0.0);
 
   n.param("cross_config", cross_config, false);

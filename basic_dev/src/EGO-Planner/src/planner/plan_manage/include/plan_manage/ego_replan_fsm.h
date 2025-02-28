@@ -21,6 +21,7 @@
 #include <traj_utils/planning_visualization.h>
 #include <traj_utils/PolyTraj.h>
 #include <traj_utils/MINCOTraj.h>
+#include <path_sender/WayPoints.h>
 
 using std::vector;
 
@@ -64,7 +65,7 @@ namespace ego_planner
     /* parameters */
     int target_type_; // 1 mannual select, 2 hard code
     double no_replan_thresh_, replan_thresh_;
-    double waypoints_[50][3];
+    double waypoints_[100][3];
     int waypoint_num_, wpt_id_;
     double planning_horizen_;
     double emergency_time_;
@@ -116,6 +117,7 @@ namespace ego_planner
     void odometryCallback(const nav_msgs::OdometryConstPtr &msg);
     void triggerCallback(const geometry_msgs::PoseStampedPtr &msg);
     void RecvBroadcastMINCOTrajCallback(const traj_utils::MINCOTrajConstPtr &msg);
+    void WayPointsCallback(const path_sender::WayPoints &msg);
     void polyTraj2ROSMsg(traj_utils::PolyTraj &poly_msg, traj_utils::MINCOTraj &MINCO_msg);
 
     /* ground height measurement */

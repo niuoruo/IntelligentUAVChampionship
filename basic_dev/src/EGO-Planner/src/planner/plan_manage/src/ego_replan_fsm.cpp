@@ -66,6 +66,7 @@ namespace ego_planner
     else if (target_type_ == TARGET_TYPE::PRESET_TARGET)
     {
       trigger_sub_ = nh.subscribe("/traj_start_trigger", 1, &EGOReplanFSM::triggerCallback, this);
+      points_sub_ = nh.subscribe("/waypoints", 10, &EGOReplanFSM::triggerCallback, this);
 
       ROS_INFO("Wait for points.");
       while (ros::ok() && flag_points_subd_ == false)
@@ -860,6 +861,19 @@ namespace ego_planner
     }
     for (int i = 0; i < piece_num; i++)
       MINCO_msg.duration[i] = durs[i];
+  }
+
+  void EGOReplanFSM::WayPointsCallback(const path_sender::WayPoints &msg);
+  {
+    waypoint_num_ = msg.waypoints.size();
+    for (int i = 0; i < waypoint_num_; i++)
+    {
+      waypoints_[i][0] = msg.points[i].x;
+      waypoints_[i][1] = msg.points[i].y;
+      waypoints_[i][2] = msg.points[i].z;
+    }
+
+    flag_points_subd_ = true;
   }
 
   bool EGOReplanFSM::measureGroundHeight(double &height)

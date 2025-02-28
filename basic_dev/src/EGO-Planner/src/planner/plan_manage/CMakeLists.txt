@@ -22,6 +22,7 @@ find_package(catkin REQUIRED COMPONENTS
   message_generation
   cv_bridge
   px4ctrl
+  path_sender
 )
 
 # catkin_package(CATKIN_DEPENDS message_runtime)

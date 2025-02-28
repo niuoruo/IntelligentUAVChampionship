@@ -29,51 +29,51 @@
 class PathSender
 {
 private:
-    geometry_msgs::Point station[13] = {
-        // geometry_msgs::Point{0.0, 0.0, 0.0},
-        // geometry_msgs::Point{0, 0, 0},
-        // geometry_msgs::Point {143, 286, -8},
-        // geometry_msgs::Point{547, 518, -30},
-        // geometry_msgs::Point {1349, -103, -9.8},
-        // geometry_msgs::Point {1176, -424, -78},
-        // geometry_msgs::Point {783, -675, -5},
-        // geometry_msgs::Point {2, -287, -3},
-        // geometry_msgs::Point {713, -728, -14},
-        // geometry_msgs::Point {1032, -483, 59},
-        // geometry_msgs::Point {1327, 153, -35},
-        // geometry_msgs::Point{676, 539, -48},
-        // geometry_msgs::Point {263, 399, 0.2}
+    cv::Point3f station_[13] = {
+        {0.0, 0.0, 0.0},
+        {0, 0, 0},
+        {143, 286, -8},
+        {547, 518, -30},
+        {1349, -103, -9.8},
+        {1176, -424, -78},
+        {783, -675, -5},
+        {2, -287, -3},
+        {713, -728, -14},
+        {1032, -483, 59},
+        {1327, 153, -35},
+        {676, 539, -48},
+        {263, 399, 0.2}
     };
 
-    geometry_msgs::Point Transit_hub[13] = {
-        // geometry_msgs::Point {0, 0, 0},
-        // geometry_msgs::Point {650.39, 75.15, 136.33},
-        // geometry_msgs::Point{665.5, 44.8, 136.33},
-        // geometry_msgs::Point{706.9, 47, 136.33},
-        // geometry_msgs::Point {726, 88, 136.33},
-        // geometry_msgs::Point {703, 122, 136.33},
-        // geometry_msgs::Point {657, 126, 136.33},
-        // geometry_msgs::Point {650.39, 75.15, 163.9},
-        // geometry_msgs::Point {657, 126, 163.9},
-        // geometry_msgs::Point {703, 122, 163.9},
-        // geometry_msgs::Point {726, 88, 163.9},
-        // geometry_msgs::Point {706.9, 47, 163.9},
-        // geometry_msgs::Point {665.5, -44.8, 163.9}
+      cv::Point3f Transit_hub_[13] = {
+         {0, 0, 0},
+        {650.39, 75.15, 136.33},
+        {665.5, 44.8, 136.33},
+        {706.9, 47, 136.33},
+        {726, 88, 136.33},
+        {703, 122, 136.33},
+        {657, 126, 136.33},
+        {650.39, 75.15, 163.9},
+        {657, 126, 163.9},
+        {703, 122, 163.9},
+        {726, 88, 163.9},
+        {706.9, 47, 163.9},
+        {665.5, -44.8, 163.9}
     };
-        geometry_msgs::Point end_point[13] = {
-        // geometry_msgs::Point{0, 0, 0},
-        // geometry_msgs::Point {0, 0, 0},
-        // geometry_msgs::Point {143, 286, -8},
-        // geometry_msgs::Point{547, 518, -30},
-        // geometry_msgs::Point {1349, -103, -9.8},
-        // geometry_msgs::Point {1176, -424, -78},
-        // geometry_msgs::Point {783, -675, -5},
-        // geometry_msgs::Point {2, -287, -3},
-        // geometry_msgs::Point{713, -728, -14},
-        // geometry_msgs::Point {1032, -483, 59},
-        // geometry_msgs::Point {1327, 153, -35},
-        // geometry_msgs::Point {676, 539, -48},
-        // geometry_msgs::Point {263, 399, 0.2}
+          cv::Point3f end_point_[13] = {
+        {0, 0, 0},
+        {0, 0, 0},
+        {143, 286, -8},
+        {547, 518, -30},
+        {1349, -103, -9.8},
+        {1176, -424, -78},
+        {783, -675, -5},
+        {2, -287, -3},
+        {713, -728, -14},
+        {1032, -483, 59},
+        {1327, 153, -35},
+        {676, 539, -48},
+        {263, 399, 0.2}
     };
 
 
@@ -82,9 +82,11 @@ public:
     ros::Subscriber initial_pose_suber, end_pose_suber; // gps数据
     void initial_pose_cb(const geometry_msgs::PoseStamped::ConstPtr& msg);
     void end_pose_cb(const geometry_msgs::PoseStamped::ConstPtr& msg);
-
+    void POintSet();
     ros::Publisher waypoint_publisher;
-
+    geometry_msgs::Point station[13];
+    geometry_msgs::Point Transit_hub[13];
+    geometry_msgs::Point end_point[13];
     bool initial_num_get = false;
     bool end_num_get = false;
     bool path_get  = false;

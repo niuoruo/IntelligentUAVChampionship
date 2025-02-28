@@ -1,14 +1,15 @@
-#ifndef _BASIC_DEV_CPP_
-#define _BASIC_DEV_CPP_
+#ifndef _PATH_SENDER_CPP_
+#define _PATH_SENDER_CPP_
 
 #include <yaml-cpp/yaml.h>
 #include "path_sender.hpp"
-
+#include <filesystem>
 int main(int argc, char** argv)
 {
 
+    ros::init(argc, argv, "path_sender"); // 初始化ros 节点，命名为 basic
     ros::NodeHandle n; // 创建node控制句柄
-    ros::init(argc, argv, "basic_dev"); // 初始化ros 节点，命名为 basic
+
     PathSender go(&n);
 
     //n.getParam("paths",paths);
@@ -39,7 +40,7 @@ std::vector<std::vector<geometry_msgs::Point>> loadPathsFromYAML(const std::stri
                 point.y = point_node[1].as<double>();
                 point.z = point_node[2].as<double>();
 
-                std::cout << "Point: " << point.x << ", " << point.y << ", " << point.z << std::endl;
+               // std::cout << "Point: " << point.x << ", " << point.y << ", " << point.z << std::endl;
 
                 path.push_back(point);
             }
@@ -51,14 +52,33 @@ std::vector<std::vector<geometry_msgs::Point>> loadPathsFromYAML(const std::stri
 
     return paths;
 }
+void PathSender::POintSet()
+{
+   for (int i = 0; i < 13; ++i)
+        {
+            station[i].x = station_[i].x;
+            station[i].y = station_[i].y;
+            station[i].z = station_[i].z;
 
+            Transit_hub[i].x = Transit_hub_[i].x;
+            Transit_hub[i].y = Transit_hub_[i].y;
+            Transit_hub[i].z = Transit_hub_[i].z;
+
+            end_point[i].x = end_point_[i].x;
+            end_point[i].y = end_point_[i].y;
+            end_point[i].z = end_point_[i].z;
+        }
+}
 PathSender::PathSender(ros::NodeHandle *nh)
 {  
-    loadPathsFromYAML("../config/paths.yaml");
 
+    POintSet();
+    std::string ROOT_DIR = std::filesystem::current_path().string();
+    paths=loadPathsFromYAML(std::string(std::string(ROOT_DIR) + "/src/path_sender/config/paths.yaml"));
+     //std::cout<<std::string(std::string(ROOT_DIR) + "/src/path_sender/config/paths.yaml")<<std::endl;
     //无人机信息通过如下命令订阅，当收到消息时自动回调对应的函数
     initial_pose_suber = nh->subscribe<geometry_msgs::PoseStamped>("/airsim_node/initial_pose", 1, std::bind(&PathSender::initial_pose_cb, this, std::placeholders::_1));//状态真值，用于赛道一
-    end_pose_suber = nh->subscribe<geometry_msgs::PoseStamped>("/airsim_node/end_pose", 1, std::bind(&PathSender::end_pose_cb, this, std::placeholders::_1));//状态真值，用于赛道一
+    end_pose_suber = nh->subscribe<geometry_msgs::PoseStamped>("/airsim_node/end_goal", 1, std::bind(&PathSender::end_pose_cb, this, std::placeholders::_1));//状态真值，用于赛道一
      timer = nh->createTimer(ros::Duration(1.0),&PathSender::timeCB,this);
 
     waypoint_publisher = nh->advertise<path_sender::WayPoints>("/waypoints", 1);
@@ -73,6 +93,7 @@ PathSender::~PathSender()
 
 void PathSender::initial_pose_cb(const geometry_msgs::PoseStamped::ConstPtr& msg)
 { 
+  //std::cout<<"initial_num_get:"<<initial_num_get<<"initian_num="<<initial_num<<std::endl;
   if(!initial_num_get)
   for(int i=1;i<=12;i++)
   {
@@ -88,12 +109,13 @@ void PathSender::initial_pose_cb(const geometry_msgs::PoseStamped::ConstPtr& msg
 
 void PathSender::end_pose_cb(const geometry_msgs::PoseStamped::ConstPtr& msg)
 {
+ // std::cout<<"end_num_get:"<<end_num_get<<"end_num="<<end_num<<std::endl;
   if(!end_num_get)
   for(int i=1;i<=12;i++)
   {
     if(abs(msg->pose.position.x -station[i].x) <5)
     {
-      end_num = i;
+      end_num = 2;
       end_num_get = true;
       break;
     }
@@ -108,28 +130,25 @@ void PathSender::timeCB(const ros::TimerEvent& event)
     {
       if(initial_num_get && end_num_get)
       {
-          path.insert(path.end(), paths[initial_num-1].begin(), paths[initial_num-1].end());//将起点到第一个转运站的路径加入
-
+          path= paths[initial_num-1];//将起点到第一个转运站的路径加入
           path.emplace_back(Transit_hub[initial_num]);//中枢入口
           path.emplace_back(Transit_hub[end_num]);//中枢出口
-
           std::vector<geometry_msgs::Point> temp_path=paths[end_num-1];
           std::reverse(temp_path.begin(),temp_path.end());//将终点到第转运站的路径倒序
           path.insert(path.end(),temp_path.begin(), temp_path.end());//将转运站到终点的路径加入
-
           path.emplace_back(end_point[end_num]);//终点后面一点
-
           geometry_msgs::Point temp_point;
           temp_point.x=end_point[end_num].x;
           temp_point.y=end_point[end_num].y;
           temp_point.z=end_point[end_num].z-150;
-          path.emplace_back();//终点后面一点向上150m
-
+          path.emplace_back(temp_point);//终点后面一点向上150m
+          temp_point.x=end_point[initial_num].x;
+          temp_point.y=end_point[initial_num].y;
+          temp_point.z=end_point[initial_num].z-150;
           path.emplace_back(temp_point);//起点后面一点向上150m
-
           path.emplace_back(end_point[initial_num]);//起点后面一点
-
           path.emplace_back(station[initial_num]);//起点后面一点
+          std::cout<<"path_get"<<std::endl;
 
           path_get=true;
       }

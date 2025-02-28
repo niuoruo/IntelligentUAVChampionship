@@ -150,6 +150,7 @@ public:
   typedef std::shared_ptr<GridMap> Ptr;
 
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+  bool flag_clear = false;
 
 private:
   MappingParameters mp_;

@@ -598,6 +598,7 @@ namespace ego_planner
         if (j < 0) // fail to get the obs free point
         {
           ROS_ERROR("The drone is in obstacle. It means a crash in real-world.");
+          grid_map_->flag_clear = true;
           in_id = 0;
         }
 

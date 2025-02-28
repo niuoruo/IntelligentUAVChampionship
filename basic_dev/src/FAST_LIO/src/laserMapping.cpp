@@ -738,8 +738,8 @@ void publish_odometry(const ros::Publisher & pubOdomAftMapped)
     q.setX(odomAftMapped.pose.pose.orientation.x);
     q.setY(odomAftMapped.pose.pose.orientation.y);
     q.setZ(odomAftMapped.pose.pose.orientation.z);
-    transform.setRotation( q );
-    br.sendTransform( tf::StampedTransform( transform, odomAftMapped.header.stamp, "odom", "body" ) );
+    transform.setRotation(q);
+    br.sendTransform(tf::StampedTransform(transform, last_imu_ptr->header.stamp, "odom", "body"));
 }
 
 void publish_path(const ros::Publisher pubPath)

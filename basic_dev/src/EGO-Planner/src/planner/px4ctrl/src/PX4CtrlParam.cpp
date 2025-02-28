@@ -31,6 +31,10 @@ void Parameter_t::config_from_ros_handle(const ros::NodeHandle& nh)
 	read_essential_param(nh, "gain/track/Kp1", track_gain.Kp1);
 	read_essential_param(nh, "gain/track/Kp2", track_gain.Kp2);
 	
+	read_essential_param(nh, "gain/track/Kpd0", track_gain.Kpd0);
+	read_essential_param(nh, "gain/track/Kpd1", track_gain.Kpd1);
+	read_essential_param(nh, "gain/track/Kpd2", track_gain.Kpd2);
+
 	read_essential_param(nh, "gain/track/Kv0", track_gain.Kv0);
 	read_essential_param(nh, "gain/track/Kv1", track_gain.Kv1);
 	read_essential_param(nh, "gain/track/Kv2", track_gain.Kv2);

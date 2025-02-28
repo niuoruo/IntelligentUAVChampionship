@@ -34,6 +34,9 @@ void Controller::config_gain(const Parameter_t::Gain& gain)
 	Kp(0,0) = gain.Kp0;
 	Kp(1,1) = gain.Kp1;
 	Kp(2,2) = gain.Kp2;
+	Kpd(0,0) = gain.Kpd0;
+	Kpd(1,1) = gain.Kpd1;
+	Kpd(2,2) = gain.Kpd2;
 	Kv(0,0) = gain.Kv0;
 	Kv(1,1) = gain.Kv1;
 	Kv(2,2) = gain.Kv2;
@@ -191,6 +194,7 @@ void Controller::update(
 		u_p = wRc * (param.Kp_gain * Kp) * cRw * e_p;
 	else
 		u_p = wRc * Kp * cRw * e_p;
+
 	u.des_v_real = des.v + u_p; // For estimating hover percent
 	e_v = des.v + u_p - odom.v;
 

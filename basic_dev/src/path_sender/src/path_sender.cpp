@@ -79,9 +79,11 @@ PathSender::PathSender(ros::NodeHandle *nh)
     //无人机信息通过如下命令订阅，当收到消息时自动回调对应的函数
     initial_pose_suber = nh->subscribe<geometry_msgs::PoseStamped>("/airsim_node/initial_pose", 1, std::bind(&PathSender::initial_pose_cb, this, std::placeholders::_1));//状态真值，用于赛道一
     end_pose_suber = nh->subscribe<geometry_msgs::PoseStamped>("/airsim_node/end_goal", 1, std::bind(&PathSender::end_pose_cb, this, std::placeholders::_1));//状态真值，用于赛道一
+    gps_pose_suber = nh->subscribe<geometry_msgs::PoseStamped>("/airsim_node/drone_1/gps", 1, std::bind(&PathSender::gps_pose_cb, this, std::placeholders::_1));
      timer = nh->createTimer(ros::Duration(1.0),&PathSender::timeCB,this);
 
     waypoint_publisher = nh->advertise<path_sender::WayPoints>("/waypoints", 1);
+    edited_gps_publisher = nh->advertise<geometry_msgs::PoseStamped>("/airsim_node/drone_1/edited_gps", 1);
 
     ros::spin();
 }
@@ -123,6 +125,32 @@ void PathSender::end_pose_cb(const geometry_msgs::PoseStamped::ConstPtr& msg)
 
 }
 
+void PathSender::gps_pose_cb(const geometry_msgs::PoseStamped::ConstPtr& msg)
+{
+    geometry_msgs::PoseStamped edited_gps = *msg;
+    edited_gps.header.frame_id = "map";
+    edited_gps.pose.position.y = -edited_gps.pose.position.y;
+    edited_gps.pose.position.z = -edited_gps.pose.position.z;
+
+    tf2::Quaternion q;
+    tf2::fromMsg(edited_gps.pose.orientation, q);
+    tf2::Matrix3x3 m(q);
+
+    tf2::Matrix3x3 transform(
+        1, 0, 0,
+        0, -1, 0,
+        0, 0, -1
+    );
+
+    m = transform * m * transform;
+
+    tf2::Quaternion new_q;
+    m.getRotation(new_q);
+
+    edited_gps.pose.orientation = tf2::toMsg(new_q);
+
+    edited_gps_publisher.publish(edited_gps);
+}
 
 void PathSender::timeCB(const ros::TimerEvent& event)
 {

@@ -886,7 +886,7 @@ namespace ego_planner
     {
       waypoints_[i][0] = msg.points[i].x;
       waypoints_[i][1] = msg.points[i].y;
-      waypoints_[i][2] = msg.points[i].z;
+      waypoints_[i][2] = msg.points[i].z + 0.32;
     }
 
     std::cout << "Received " << waypoint_num_ << " waypoints." << std::endl;

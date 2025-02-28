@@ -57,6 +57,7 @@ public:
 	ros::ServiceClient set_FCU_mode;
 
 	Eigen::Matrix3d Kp;
+	Eigen::Matrix3d Kpd;
 	Eigen::Matrix3d Kv;
 	Eigen::Matrix3d Kvi;
 	Eigen::Matrix3d Kvd;

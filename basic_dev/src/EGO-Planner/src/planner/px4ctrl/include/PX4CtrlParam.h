@@ -10,6 +10,7 @@ public:
 	struct Gain
 	{
 		double Kp0,Kp1,Kp2;
+		double Kpd0,Kpd1,Kpd2;
 		double Kv0,Kv1,Kv2;
 		double Kvi0,Kvi1,Kvi2;
 		double Kvd0,Kvd1,Kvd2;

@@ -79,11 +79,12 @@ private:
 
 
 public:
-    ros::Subscriber initial_pose_suber, end_pose_suber; // gps数据
+    ros::Subscriber initial_pose_suber, end_pose_suber, gps_pose_suber; // gps数据
     void initial_pose_cb(const geometry_msgs::PoseStamped::ConstPtr& msg);
     void end_pose_cb(const geometry_msgs::PoseStamped::ConstPtr& msg);
+    void gps_pose_cb(const geometry_msgs::PoseStamped::ConstPtr& msg);
     void POintSet();
-    ros::Publisher waypoint_publisher;
+    ros::Publisher waypoint_publisher, edited_gps_publisher;
     geometry_msgs::Point station[13];
     geometry_msgs::Point Transit_hub[13];
     geometry_msgs::Point end_point[13];

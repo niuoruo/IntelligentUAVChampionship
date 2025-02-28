@@ -355,6 +355,15 @@ void GridMap::cloudCallback(const sensor_msgs::PointCloud2ConstPtr &img)
   if (isnan(md_.camera_pos_(0)) || isnan(md_.camera_pos_(1)) || isnan(md_.camera_pos_(2)))
     return;
 
+  if (flag_clear)
+  {
+    std::fill(md_.occupancy_buffer_inflate_.begin(), 
+              md_.occupancy_buffer_inflate_.end(), 0);
+    std::fill(md_.occupancy_buffer_.begin(), 
+              md_.occupancy_buffer_.end(), 1);
+    flag_clear = false;
+  }
+
   moveRingBuffer();
 
   pcl::PointXYZ pt;

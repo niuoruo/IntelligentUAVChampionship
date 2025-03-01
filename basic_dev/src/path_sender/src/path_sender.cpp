@@ -4,6 +4,9 @@
 #include <yaml-cpp/yaml.h>
 #include "path_sender.hpp"
 #include <filesystem>
+#include <tf/transform_datatypes.h>
+#include <tf/transform_broadcaster.h>
+
 int main(int argc, char** argv)
 {
 
@@ -79,11 +82,11 @@ PathSender::PathSender(ros::NodeHandle *nh)
     //无人机信息通过如下命令订阅，当收到消息时自动回调对应的函数
     initial_pose_suber = nh->subscribe<geometry_msgs::PoseStamped>("/airsim_node/initial_pose", 1, std::bind(&PathSender::initial_pose_cb, this, std::placeholders::_1));//状态真值，用于赛道一
     end_pose_suber = nh->subscribe<geometry_msgs::PoseStamped>("/airsim_node/end_goal", 1, std::bind(&PathSender::end_pose_cb, this, std::placeholders::_1));//状态真值，用于赛道一
-    // gps_pose_suber = nh->subscribe<geometry_msgs::PoseStamped>("/airsim_node/drone_1/gps", 1, std::bind(&PathSender::gps_pose_cb, this, std::placeholders::_1));
+    gps_pose_suber = nh->subscribe<geometry_msgs::PoseStamped>("/airsim_node/drone_1/gps", 1, std::bind(&PathSender::gps_pose_cb, this, std::placeholders::_1));
      timer = nh->createTimer(ros::Duration(1.0),&PathSender::timeCB,this);
 
     waypoint_publisher = nh->advertise<path_sender::WayPoints>("/waypoints", 1);
-    // edited_gps_publisher = nh->advertise<geometry_msgs::PoseStamped>("/airsim_node/drone_1/edited_gps", 1);
+    edited_gps_publisher = nh->advertise<geometry_msgs::PoseWithCovarianceStamped>("/airsim_node/drone_1/edited_gps", 1);
 
     ros::spin();
 }
@@ -127,27 +130,53 @@ void PathSender::end_pose_cb(const geometry_msgs::PoseStamped::ConstPtr& msg)
 
 void PathSender::gps_pose_cb(const geometry_msgs::PoseStamped::ConstPtr& msg)
 {
-    geometry_msgs::PoseStamped edited_gps = *msg;
+    geometry_msgs::PoseWithCovarianceStamped edited_gps;
+    edited_gps.header.stamp = ros::Time::now();
     edited_gps.header.frame_id = "map";
-    edited_gps.pose.position.y = -edited_gps.pose.position.y;
-    edited_gps.pose.position.z = -edited_gps.pose.position.z;
+    edited_gps.pose.pose = msg->pose;
 
-    tf2::Quaternion q;
-    tf2::fromMsg(edited_gps.pose.orientation, q);
-    tf2::Matrix3x3 m(q);
+    // static tf2_ros::TransformBroadcaster br;
+    // geometry_msgs::TransformStamped transformStamped;
 
-    tf2::Matrix3x3 transform(
-        1, 0, 0,
-        0, -1, 0,
-        0, 0, -1
-    );
+    // transformStamped.header.stamp = ros::Time::now();
+    // transformStamped.header.frame_id = "gps";
+    // transformStamped.child_frame_id = "drone";
+    // transformStamped.transform.translation.x = msg->pose.position.x;
+    // transformStamped.transform.translation.y = msg->pose.position.y;
+    // transformStamped.transform.translation.z = msg->pose.position.z;
+    // transformStamped.transform.rotation = msg->pose.orientation;
 
-    m = transform * m * transform;
+    // br.sendTransform(transformStamped);
 
-    tf2::Quaternion new_q;
-    m.getRotation(new_q);
+    // edited_gps.pose.pose.position.y = -edited_gps.pose.pose.position.y;
+    // edited_gps.pose.pose.position.z = -edited_gps.pose.pose.position.z;
 
-    edited_gps.pose.orientation = tf2::toMsg(new_q);
+    // for (int i = 0; i < 36; ++i) {
+    //   edited_gps.pose.covariance[i] = 0.0;
+    // }
+    // // Example covariance values, adjust as needed
+    edited_gps.pose.covariance[0] = 1e-7;   // x
+    edited_gps.pose.covariance[7] = 1e-7;   // y
+    edited_gps.pose.covariance[14] = 1e-7;  // z
+    edited_gps.pose.covariance[21] = 0.1;  // roll
+    edited_gps.pose.covariance[28] = 0.1;  // pitch
+    edited_gps.pose.covariance[35] = 0.1;  // yaw
+    // tf2::Quaternion q;
+    // tf2::fromMsg(edited_gps.pose.pose.orientation, q);
+    // tf2::Matrix3x3 m(q);
+
+    // tf2::Matrix3x3 transform(
+    //   1, 0, 0,
+    //   0, -1, 0,
+    //   0, 0, -1
+    // );
+
+    // m = transform * m * transform;
+
+    // tf2::Quaternion new_q;
+    // m.getRotation(new_q);
+
+    // edited_gps.pose.pose.orientation = tf2::toMsg(new_q);
 
     edited_gps_publisher.publish(edited_gps);
 }

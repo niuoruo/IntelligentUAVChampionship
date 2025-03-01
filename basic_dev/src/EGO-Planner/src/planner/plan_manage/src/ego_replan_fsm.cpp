@@ -1,8 +1,42 @@
 
 #include <plan_manage/ego_replan_fsm.h>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 
 namespace ego_planner
 {
+
+  Eigen::Vector3d transformWaypointToA(const Eigen::Vector3d& waypoint_B,
+                                     const nav_msgs::Odometry& odom_A,
+                                     const geometry_msgs::PoseStamped& pose_B)
+  {
+    // Eigen::Vector3d p_A_base(odom_A.pose.pose.position.x,
+    //                          odom_A.pose.pose.position.y,
+    //                          odom_A.pose.pose.position.z);
+    // Eigen::Quaterniond q_A_base(odom_A.pose.pose.orientation.w,
+    //                             odom_A.pose.pose.orientation.x,
+    //                             odom_A.pose.pose.orientation.y,
+    //                             odom_A.pose.pose.orientation.z);
+
+    // Eigen::Vector3d p_B_base(pose_B.pose.position.x,
+    //                          pose_B.pose.position.y,
+    //                          pose_B.pose.position.z);
+    // Eigen::Quaterniond q_B_base(pose_B.pose.orientation.w,
+    //                             pose_B.pose.orientation.x,
+    //                             pose_B.pose.orientation.y,
+    //                             pose_B.pose.orientation.z);
+
+    // Eigen::Quaterniond q_A_B = q_A_base * q_B_base.inverse(); // 旋转变换
+    // Eigen::Vector3d p_A_B = p_A_base - q_A_B * p_B_base;      // 平移变换
+
+    // Eigen::Vector3d waypoint_A = q_A_B * waypoint_B + p_A_B;
+    
+    Eigen::Vector3d diff = Eigen::Vector3d(pose_B.pose.position.x - odom_A.pose.pose.position.x,
+                                           pose_B.pose.position.y - odom_A.pose.pose.position.y,
+                                           pose_B.pose.position.z - odom_A.pose.pose.position.z);
+    Eigen::Vector3d waypoint_A = waypoint_B - diff;
+
+    return waypoint_A;
+  }
 
   void EGOReplanFSM::init(ros::NodeHandle &nh)
   {
@@ -13,6 +47,7 @@ namespace ego_planner
     flag_escape_emergency_ = true;
     flag_points_subd_ = false;
     mandatory_stop_ = false;
+    flag_gps_init_ = false;
 
     /*  fsm param  */
     nh.param("fsm/flight_type", target_type_, -1);
@@ -38,7 +73,7 @@ namespace ego_planner
     planner_manager_->initPlanModules(nh, visualization_);
 
     have_trigger_ = !flag_realworld_experiment_;
-    no_replan_thresh_ = 0.5 * emergency_time_ * planner_manager_->pp_.max_vel_;
+    no_replan_thresh_ = 2.0 * emergency_time_ * planner_manager_->pp_.max_vel_;
 
     /* callback */
     exec_timer_ = nh.createTimer(ros::Duration(0.01), &EGOReplanFSM::execFSMCallback, this);
@@ -46,6 +81,7 @@ namespace ego_planner
 
     odom_sub_ = nh.subscribe("odom_world", 1, &EGOReplanFSM::odometryCallback, this);
     mandatory_stop_sub_ = nh.subscribe("mandatory_stop", 1, &EGOReplanFSM::mandatoryStopCallback, this);
+    gps_pose_sub_ = nh.subscribe("/airsim_node/drone_1/gps", 1, &EGOReplanFSM::gpsPoseCallback, this);
 
     /* Use MINCO trajectory to minimize the message size in wireless communication */
     broadcast_ploytraj_pub_ = nh.advertise<traj_utils::MINCOTraj>("planning/broadcast_traj_send", 10);
@@ -172,13 +208,23 @@ namespace ego_planner
       {
         changeFSMExecState(EXEC_TRAJ, "FSM");
       }
-      else if((final_goal_ - odom_pos_).norm() < 12.0 &&
+      else if((final_goal_ - odom_pos_).norm() < 20.0 &&
               (target_type_ == TARGET_TYPE::PRESET_TARGET || target_type_ == TARGET_TYPE::SUBED_POINTS) &&
               (wpt_id_ < waypoint_num_ - 1))
       {
-        wpt_id_++;
-        changeFSMExecState(EXEC_TRAJ, "FSM");
-        planNextWaypoint(wps_[wpt_id_]);
+        std::cout << "++++++++++++++++++++++++++++++n\n\n\n\n\n\n\n\n\n\n++++++++++++++++++++++++++++++\n";
+        
+        Eigen::Vector3d wp;
+        do
+        {
+          wpt_id_++;
+          if (flag_gps_init_)
+            wp = transformWaypointToA(wps_[wpt_id_], odom_, gps_pos_);
+          else
+            wp = wps_[wpt_id_];
+        } while((odom_pos_ - wp).norm() < 12.0 && wpt_id_ < waypoint_num_ - 1);
+
+        planNextWaypoint(wp);
       }
       else
       {
@@ -206,8 +252,19 @@ namespace ego_planner
         if ((target_type_ == TARGET_TYPE::PRESET_TARGET || target_type_ == TARGET_TYPE::SUBED_POINTS) &&
             (wpt_id_ < waypoint_num_ - 1))
         {
-          wpt_id_++;
-          planNextWaypoint(wps_[wpt_id_]);
+          std::cout << "++++++++++++++++++++++++++++++n\n\n\n\n\n\n\n\n\n\n++++++++++++++++++++++++++++++\n";
+        
+          Eigen::Vector3d wp;
+          do
+          {
+            wpt_id_++;
+            if (flag_gps_init_)
+              wp = transformWaypointToA(wps_[wpt_id_], odom_, gps_pos_);
+            else
+              wp = wps_[wpt_id_];
+          } while((odom_pos_ - wp).norm() < 12.0 && wpt_id_ < waypoint_num_ - 1);
+
+          planNextWaypoint(wp);
         }
         else
         {
@@ -216,10 +273,21 @@ namespace ego_planner
       }
       else if ((target_type_ == TARGET_TYPE::PRESET_TARGET || target_type_ == TARGET_TYPE::SUBED_POINTS) &&
                (wpt_id_ < waypoint_num_ - 1) &&
-               (final_goal_ - pos).norm() < no_replan_thresh_) // case 2: assign the next waypoint
+               (final_goal_ - pos).norm() < 12.0) // case 2: assign the next waypoint
       {
-        wpt_id_++;
-        planNextWaypoint(wps_[wpt_id_]);
+        std::cout << "++++++++++++++++++++++++++++++n\n\n\n\n\n\n\n\n\n\n++++++++++++++++++++++++++++++\n";
+        
+        Eigen::Vector3d wp;
+        do
+        {
+          wpt_id_++;
+          if (flag_gps_init_)
+            wp = transformWaypointToA(wps_[wpt_id_], odom_, gps_pos_);
+          else
+            wp = wps_[wpt_id_];
+        } while((odom_pos_ - wp).norm() < 12.0 && wpt_id_ < waypoint_num_ - 1);
+
+        planNextWaypoint(wp);
       }
       else if ((t_cur > info->duration - 1e-2) && touch_the_goal) // case 3: the final waypoint reached
       {
@@ -322,10 +390,28 @@ namespace ego_planner
 
   void EGOReplanFSM::gpsPoseCallback(const geometry_msgs::PoseStamped::ConstPtr& msg)
   {
-    Eigen::Vector3d gps_pos(msg->pose.position.x, 
-                            msg->pose.position.y, 
-                            msg->pose.position.z);
-    odom_diff_ = gps_pos - odom_pos_;
+    gps_pos_ = *msg;
+
+    gps_pos_.pose.position.y = -gps_pos_.pose.position.y;
+    gps_pos_.pose.position.z = -gps_pos_.pose.position.z;
+
+    tf2::Quaternion q;
+    tf2::fromMsg(gps_pos_.pose.orientation, q);
+    tf2::Matrix3x3 m(q);
+
+    tf2::Matrix3x3 transform(
+      1, 0, 0,
+      0, -1, 0,
+      0, 0, -1
+    );
+
+    m = transform * m * transform;
+
+    tf2::Quaternion new_q;
+    m.getRotation(new_q);
+
+    gps_pos_.pose.orientation = tf2::toMsg(new_q);
+    flag_gps_init_ = true;
   }
 
   void EGOReplanFSM::checkCollisionCallback(const ros::TimerEvent &e)
@@ -423,12 +509,12 @@ namespace ego_planner
           }
           else
           {
-            if (t - t_cur < emergency_time_) // 0.8s of emergency time
-            {
-              ROS_WARN("Emergency stop! time=%f", t - t_cur);
-              changeFSMExecState(EMERGENCY_STOP, "SAFETY");
-            }
-            else
+            // if (t - t_cur < emergency_time_) // 0.8s of emergency time
+            // {
+            //   ROS_WARN("Emergency stop! time=%f", t - t_cur);
+            //   changeFSMExecState(EMERGENCY_STOP, "SAFETY");
+            // }
+            // else
             {
               ROS_WARN("current traj in collision, replan.");
               changeFSMExecState(REPLAN_TRAJ, "SAFETY");
@@ -514,9 +600,18 @@ namespace ego_planner
     LocalTrajData *info = &planner_manager_->traj_.local_traj;
     double t_cur = ros::Time::now().toSec() - info->start_time;
 
-    start_pt_ = info->traj.getPos(t_cur);
-    start_vel_ = info->traj.getVel(t_cur);
-    start_acc_ = info->traj.getAcc(t_cur);
+    if (t_cur > info->duration)
+    {
+      start_pt_ = odom_pos_;
+      start_vel_ = odom_vel_;
+      start_acc_ = Eigen::Vector3d::Zero();
+    }
+    else
+    {
+      start_pt_ = info->traj.getPos(t_cur);
+      start_vel_ = info->traj.getVel(t_cur);
+      start_acc_ = info->traj.getAcc(t_cur);
+    }
 
     bool success = callReboundReplan(false, false);
 
@@ -545,13 +640,18 @@ namespace ego_planner
   {
     bool success = false;
     std::vector<Eigen::Vector3d> one_pt_wps;
-    Eigen::Vector3d wp = next_wp - odom_diff_;
+    Eigen::Vector3d wp;
+    if (flag_gps_init_)
+      wp = transformWaypointToA(next_wp, odom_, gps_pos_);
+    else
+      wp = next_wp;
+
     one_pt_wps.push_back(wp);
     success = planner_manager_->planGlobalTrajWaypoints(
         odom_pos_, odom_vel_, Eigen::Vector3d::Zero(),
         one_pt_wps, Eigen::Vector3d::Zero(), Eigen::Vector3d::Zero());
 
-    // visualization_->displayGoalPoint(wp, Eigen::Vector4d(0, 0.5, 0.5, 1), 0.3, 0);
+    visualization_->displayGoalPoint(wp, Eigen::Vector4d(0, 0.5, 0.5, 1), 0.3, 0);
 
     if (success)
     {
@@ -572,11 +672,6 @@ namespace ego_planner
       /*** FSM ***/
       if (exec_state_ != WAIT_TARGET)
       {
-        while (exec_state_ != EXEC_TRAJ)
-        {
-          ros::spinOnce();
-          ros::Duration(0.001).sleep();
-        }
         changeFSMExecState(REPLAN_TRAJ, "TRIG");
       }
 
@@ -678,6 +773,8 @@ namespace ego_planner
     odom_vel_(0) = msg->twist.twist.linear.x;
     odom_vel_(1) = msg->twist.twist.linear.y;
     odom_vel_(2) = msg->twist.twist.linear.z;
+
+    odom_ = *msg;
 
     have_odom_ = true;
   }

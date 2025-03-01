@@ -11,6 +11,7 @@
 #include "airsim_ros/GPSYaw.h"
 #include "nav_msgs/Odometry.h"
 #include "geometry_msgs/PoseStamped.h"
+#include "geometry_msgs/PoseWithCovarianceStamped.h"
 #include "sensor_msgs/PointCloud2.h"
 #include  "sensor_msgs/Imu.h"
 #include <time.h>

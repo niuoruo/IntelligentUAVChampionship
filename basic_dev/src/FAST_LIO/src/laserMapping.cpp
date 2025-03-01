@@ -88,11 +88,11 @@ double res_mean_last = 0.05, total_residual = 0.0;
 double last_timestamp_lidar = 0, last_timestamp_imu = -1.0;
 double gyr_cov = 0.1, acc_cov = 0.1, b_gyr_cov = 0.0001, b_acc_cov = 0.0001;
 double filter_size_corner_min = 0, filter_size_surf_min = 0, filter_size_map_min = 0, fov_deg = 0;
-double cube_len = 0, HALF_FOV_COS = 0, FOV_DEG = 0, total_distance = 0, lidar_end_time = 0, first_lidar_time = 0.0;
+double cube_len = 0, HALF_FOV_COS = 0, FOV_DEG = 0, total_distance = 0, lidar_end_time = 0, first_lidar_time = 0.0, diff_time = 0.0;
 int    effct_feat_num = 0, time_log_counter = 0, scan_count = 0, publish_count = 0;
 int    iterCount = 0, feats_down_size = 0, NUM_MAX_ITERATIONS = 0, laserCloudValidNum = 0, pcd_save_interval = -1, pcd_index = 0;
 bool   point_selected_surf[100000] = {0};
-bool   lidar_pushed, flg_first_ekf = false, flg_pose_init = true, flg_first_scan = true, flg_exit = false, flg_EKF_inited, flg_updated;
+bool   lidar_pushed, flg_first_ekf = false, flg_pose_init = true, flg_first_scan = true, flg_exit = false, flg_first_imu = false, flg_EKF_inited, flg_updated;
 bool   scan_pub_en = false, dense_pub_en = false, scan_body_pub_en = false;
 int lidar_type;
 
@@ -382,6 +382,11 @@ void livox_pcl_cbk(const livox_ros_driver2::CustomMsg::ConstPtr &msg)
 
 void imu_cbk(const sensor_msgs::Imu::ConstPtr &msg_in) 
 {
+    if (!flg_first_imu)
+    {
+        diff_time = ros::Time::now().toSec() - msg_in->header.stamp.toSec();
+        flg_first_imu = true;
+    }
     publish_count ++;
     // cout<<"IMU got at: "<<msg_in->header.stamp.toSec()<<endl;
     sensor_msgs::Imu::Ptr msg(new sensor_msgs::Imu(*msg_in));
@@ -712,7 +717,8 @@ void publish_odometry(const ros::Publisher & pubOdomAftMapped)
 {
     odomAftMapped.header.frame_id = "odom";
     odomAftMapped.child_frame_id = "body";
-    odomAftMapped.header.stamp = last_imu_ptr->header.stamp;// ros::Time().fromSec(lidar_end_time);
+    // odomAftMapped.header.stamp = ros::Time().fromSec(last_imu_ptr->header.stamp.toSec() + diff_time);// ros::Time().fromSec(lidar_end_time);
+    odomAftMapped.header.stamp = ros::Time().now();// ros::Time().fromSec(lidar_end_time);
     set_posestamp(odomAftMapped.pose);
     set_velstamp(odomAftMapped.twist);
     pubOdomAftMapped.publish(odomAftMapped);
@@ -720,12 +726,12 @@ void publish_odometry(const ros::Publisher & pubOdomAftMapped)
     for (int i = 0; i < 6; i ++)
     {
         int k = i < 3 ? i + 3 : i - 3;
-        odomAftMapped.pose.covariance[i*6 + 0] = P(k, 3);
-        odomAftMapped.pose.covariance[i*6 + 1] = P(k, 4);
-        odomAftMapped.pose.covariance[i*6 + 2] = P(k, 5);
-        odomAftMapped.pose.covariance[i*6 + 3] = P(k, 0);
-        odomAftMapped.pose.covariance[i*6 + 4] = P(k, 1);
-        odomAftMapped.pose.covariance[i*6 + 5] = P(k, 2);
+        odomAftMapped.pose.covariance[i*6 + 0] = 1e-6;
+        odomAftMapped.pose.covariance[i*6 + 1] = 1e-6;
+        odomAftMapped.pose.covariance[i*6 + 2] = 1e-6;
+        odomAftMapped.pose.covariance[i*6 + 3] = 1e-6;
+        odomAftMapped.pose.covariance[i*6 + 4] = 1e-6;
+        odomAftMapped.pose.covariance[i*6 + 5] = 1e-6;
     }
 
     static tf::TransformBroadcaster br;
@@ -739,7 +745,7 @@ void publish_odometry(const ros::Publisher & pubOdomAftMapped)
     q.setY(odomAftMapped.pose.pose.orientation.y);
     q.setZ(odomAftMapped.pose.pose.orientation.z);
     transform.setRotation(q);
-    br.sendTransform(tf::StampedTransform(transform, last_imu_ptr->header.stamp, "odom", "body"));
+    br.sendTransform(tf::StampedTransform(transform, odomAftMapped.header.stamp, "odom", "body"));
 }
 
 void publish_path(const ros::Publisher pubPath)

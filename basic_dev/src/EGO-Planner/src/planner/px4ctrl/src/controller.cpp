@@ -205,8 +205,8 @@ void Controller::update(
 		}
 	}
 	Eigen::Vector3d u_v_p = wRc * Kv * cRw * e_v;
-	const std::vector<double> integration_output_limits = {0.4, 0.4, 0.4};
-	const std::vector<double> d_output_limits = {0.8, 0.8, 0.8};
+	const std::vector<double> integration_output_limits = {0.6, 0.6, 0.6};
+	const std::vector<double> d_output_limits = {1.0, 1.0, 0.8};
 	Eigen::Vector3d u_v_i = wRc * Kvi * cRw * int_e_v;
 	for (size_t k = 0; k < 3; ++k) {
 		if (std::fabs(u_v_i(k)) > integration_output_limits[k]) {
@@ -314,26 +314,26 @@ void Controller::publish_ctrl(const Controller_Output_t& u, const ros::Time& sta
 {
 
 	static int cnt = 0;
-	if (cnt < 50)
+	if (cnt < 100)
 	{
 		std::cout << "here" << std::endl;
 		airsim_ros::RotorPWM pwm;
-		pwm.rotorPWM0 = 0.178087130188 + 0.02;
-		pwm.rotorPWM1 = 0.178087130188 + 0.02;
-		pwm.rotorPWM2 = 0.178087130188 + 0.02;
-		pwm.rotorPWM3 = 0.178087130188 + 0.02;
+		pwm.rotorPWM0 = 0.178087130188 + 0.03;
+		pwm.rotorPWM1 = 0.178087130188 + 0.03;
+		pwm.rotorPWM2 = 0.178087130188 + 0.03;
+		pwm.rotorPWM3 = 0.178087130188 + 0.03;
 		ctrl_PWM_pub.publish(pwm);
 		cnt++;
 		return;
 	}
-	else if (cnt >= 50 && cnt < 100)
+	else if (cnt >= 100&& cnt < 180)
 	{
 		std::cout << "here" << std::endl;
 		airsim_ros::RotorPWM pwm;
-		pwm.rotorPWM0 = 0.178087130188 - 0.02;
-		pwm.rotorPWM1 = 0.178087130188 - 0.02;
-		pwm.rotorPWM2 = 0.178087130188 - 0.02;
-		pwm.rotorPWM3 = 0.178087130188 - 0.02;
+		pwm.rotorPWM0 = 0.178087130188 - 0.03;
+		pwm.rotorPWM1 = 0.178087130188 - 0.03;
+		pwm.rotorPWM2 = 0.178087130188 - 0.03;
+		pwm.rotorPWM3 = 0.178087130188 - 0.03;
 		ctrl_PWM_pub.publish(pwm);
 		cnt++;
 		return;

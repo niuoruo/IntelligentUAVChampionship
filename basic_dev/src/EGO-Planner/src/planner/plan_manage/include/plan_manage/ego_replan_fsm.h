@@ -75,6 +75,9 @@ namespace ego_planner
     bool enable_ground_height_measurement_;
     bool flag_escape_emergency_;
     bool flag_points_subd_;
+    bool flag_gps_init_;
+    nav_msgs::Odometry odom_;
+    geometry_msgs::PoseStamped gps_pos_;
 
     bool have_trigger_, have_target_, have_odom_, have_new_target_, have_recv_pre_agent_, touch_goal_, mandatory_stop_;
     FSM_EXEC_STATE exec_state_;
@@ -84,7 +87,6 @@ namespace ego_planner
     Eigen::Vector3d final_goal_;                             // goal state
     Eigen::Vector3d local_target_pt_, local_target_vel_; // local target state
     Eigen::Vector3d odom_pos_, odom_vel_, odom_acc_;     // odometry state
-    Eigen::Vector3d odom_diff_ = Eigen::Vector3d::Zero();
     std::vector<Eigen::Vector3d> wps_;
 
     /* ROS utils */

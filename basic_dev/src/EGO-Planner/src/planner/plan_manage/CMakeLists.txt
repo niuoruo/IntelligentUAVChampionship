@@ -23,6 +23,7 @@ find_package(catkin REQUIRED COMPONENTS
   cv_bridge
   px4ctrl
   path_sender
+  tf2_ros
 )
 
 # catkin_package(CATKIN_DEPENDS message_runtime)

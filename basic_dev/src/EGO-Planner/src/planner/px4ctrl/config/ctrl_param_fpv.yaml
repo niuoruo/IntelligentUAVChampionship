@@ -22,16 +22,13 @@ hover:
 
 gain:
     track:
-        Kp_gain: 1.5
-        thresh: 0.2
-        Kp0: 0.9 #1.5
-        Kp1: 0.9 #5
+        Kp_gain: 1.7
+        thresh: 0.1
+        Kp0: 1.0 #1.5
+        Kp1: 1.0 #5
         Kp2: 1.15
-        Kpd0: 0.1
-        Kpd1: 0.1
-        Kpd2: 0.0
-        Kv0: 1.0 #6
-        Kv1: 1.0 #6
+        Kv0: 1.1 #6
+        Kv1: 1.1 #6
         Kv2: 1.5 #6
         Kvi0: 0.1
         Kvi1: 0.1
@@ -43,7 +40,7 @@ gain:
         Ka1: 1.0
         Ka2: 1.2
         Kyaw: 5.0 # 15.0
-        Krp: 8.0 #25
+        Krp: 9.0 #25
         Kdrp: 0.5 #25
         Kdyaw: 0.5 #25
         Kyawd: 15.0 

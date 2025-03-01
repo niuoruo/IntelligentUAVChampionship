@@ -84,12 +84,13 @@ namespace ego_planner
     Eigen::Vector3d final_goal_;                             // goal state
     Eigen::Vector3d local_target_pt_, local_target_vel_; // local target state
     Eigen::Vector3d odom_pos_, odom_vel_, odom_acc_;     // odometry state
+    Eigen::Vector3d odom_diff_ = Eigen::Vector3d::Zero();
     std::vector<Eigen::Vector3d> wps_;
 
     /* ROS utils */
     ros::NodeHandle node_;
     ros::Timer exec_timer_, safety_timer_;
-    ros::Subscriber waypoint_sub_, odom_sub_, trigger_sub_, broadcast_ploytraj_sub_, mandatory_stop_sub_, points_sub_;
+    ros::Subscriber waypoint_sub_, odom_sub_, trigger_sub_, broadcast_ploytraj_sub_, mandatory_stop_sub_, points_sub_, gps_pose_sub_;
     ros::Publisher poly_traj_pub_, data_disp_pub_, broadcast_ploytraj_pub_, heartbeat_pub_, ground_height_pub_;
 
     /* state machine functions */
@@ -120,6 +121,7 @@ namespace ego_planner
     void RecvBroadcastMINCOTrajCallback(const traj_utils::MINCOTrajConstPtr &msg);
     void WayPointsCallback(const path_sender::WayPoints &msg);
     void polyTraj2ROSMsg(traj_utils::PolyTraj &poly_msg, traj_utils::MINCOTraj &MINCO_msg);
+    void gpsPoseCallback(const geometry_msgs::PoseStamped::ConstPtr& msg);
 
     /* ground height measurement */
     bool measureGroundHeight(double &height);

@@ -38,7 +38,7 @@ namespace ego_planner
     planner_manager_->initPlanModules(nh, visualization_);
 
     have_trigger_ = !flag_realworld_experiment_;
-    no_replan_thresh_ = 2.0 * emergency_time_ * planner_manager_->pp_.max_vel_;
+    no_replan_thresh_ = 0.5 * emergency_time_ * planner_manager_->pp_.max_vel_;
 
     /* callback */
     exec_timer_ = nh.createTimer(ros::Duration(0.01), &EGOReplanFSM::execFSMCallback, this);
@@ -320,6 +320,14 @@ namespace ego_planner
     return std::pair<int, FSM_EXEC_STATE>(continously_called_times_, exec_state_);
   }
 
+  void EGOReplanFSM::gpsPoseCallback(const geometry_msgs::PoseStamped::ConstPtr& msg)
+  {
+    Eigen::Vector3d gps_pos(msg->pose.position.x, 
+                            msg->pose.position.y, 
+                            msg->pose.position.z);
+    odom_diff_ = gps_pos - odom_pos_;
+  }
+
   void EGOReplanFSM::checkCollisionCallback(const ros::TimerEvent &e)
   {
     // check ground height by the way
@@ -537,16 +545,17 @@ namespace ego_planner
   {
     bool success = false;
     std::vector<Eigen::Vector3d> one_pt_wps;
-    one_pt_wps.push_back(next_wp);
+    Eigen::Vector3d wp = next_wp - odom_diff_;
+    one_pt_wps.push_back(wp);
     success = planner_manager_->planGlobalTrajWaypoints(
         odom_pos_, odom_vel_, Eigen::Vector3d::Zero(),
         one_pt_wps, Eigen::Vector3d::Zero(), Eigen::Vector3d::Zero());
 
-    // visualization_->displayGoalPoint(next_wp, Eigen::Vector4d(0, 0.5, 0.5, 1), 0.3, 0);
+    // visualization_->displayGoalPoint(wp, Eigen::Vector4d(0, 0.5, 0.5, 1), 0.3, 0);
 
     if (success)
     {
-      final_goal_ = next_wp;
+      final_goal_ = wp;
 
       /*** display ***/
       constexpr double step_size_t = 0.1;

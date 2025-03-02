@@ -24,17 +24,20 @@ gain:
     track:
         Kp_gain: 1.5
         thresh: 0.1
-        Kp0: 1.2 #1.5
-        Kp1: 1.2 #5
-        Kp2: 1.15
+        Kp0: 1.3 #1.5
+        Kp1: 1.3 #5
+        Kp2: 1.4
+        Kpd0: 0.0
+        Kpd1: 0.0
+        Kpd2: 0.0
         Kv0: 1.1 #6
         Kv1: 1.1 #6
         Kv2: 1.5 #6
-        Kvi0: 0.1
-        Kvi1: 0.1
-        Kvi2: 0.1
-        Kvd0: 0.15
-        Kvd1: 0.15
+        Kvi0: 0.0
+        Kvi1: 0.0
+        Kvi2: 0.0
+        Kvd0: 0.2
+        Kvd1: 0.2
         Kvd2: 0.15
         Ka0: 1.0
         Ka1: 1.0

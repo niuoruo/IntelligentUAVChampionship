@@ -92,9 +92,11 @@ double cube_len = 0, HALF_FOV_COS = 0, FOV_DEG = 0, total_distance = 0, lidar_en
 int    effct_feat_num = 0, time_log_counter = 0, scan_count = 0, publish_count = 0;
 int    iterCount = 0, feats_down_size = 0, NUM_MAX_ITERATIONS = 0, laserCloudValidNum = 0, pcd_save_interval = -1, pcd_index = 0;
 bool   point_selected_surf[100000] = {0};
-bool   lidar_pushed, flg_first_ekf = false, flg_pose_init = true, flg_first_scan = true, flg_exit = false, flg_first_imu = false, flg_EKF_inited, flg_updated;
+bool   lidar_pushed, flg_first_ekf = false, flg_pose_init = true, flg_first_scan = true, flg_exit = false, flg_first_imu = false, flg_EKF_inited;
 bool   scan_pub_en = false, dense_pub_en = false, scan_body_pub_en = false;
 int lidar_type;
+
+std::atomic<bool> flg_updated(false);
 
 vector<vector<int>>  pointSearchInd_surf; 
 vector<BoxPointType> cub_needrm;
@@ -670,21 +672,14 @@ void publish_map(const ros::Publisher & pubLaserCloudMap)
 template<typename T>
 void set_posestamp(T & out)
 {
-    // R
-    M3D init_R_lidar = realtime_state_point.rot.toRotationMatrix();
+    const M3D MAP_R_BOT = init_pose_R * BOT_R_wrt_IMU * realtime_state_point.rot.toRotationMatrix() * IMU_R_wrt_BOT;
+    
+    const Eigen::Quaterniond q(MAP_R_BOT);
+    tf::quaternionTFToMsg(tf::Quaternion(q.x(), q.y(), q.z(), q.w()), out.pose.orientation);
 
-    M3D MAP_R_BOT = BOT_R_wrt_IMU * init_R_lidar * IMU_R_wrt_BOT;
-
-    Eigen::Quaterniond q(init_pose_R * MAP_R_BOT);
-    tf::Quaternion tf_q(q.x(), q.y(), q.z(), q.w());
-    tf::quaternionTFToMsg(tf_q, out.pose.orientation);
-
-    // T
-    V3D init_T_lidar(realtime_state_point.pos(0), 
-                     realtime_state_point.pos(1), 
-                     realtime_state_point.pos(2));
-    V3D MAP_T_lidar(BOT_R_wrt_IMU * init_T_lidar + BOT_T_wrt_IMU);
-    V3D MAP_T_BOT(init_pose_R * (MAP_T_lidar - MAP_R_BOT * BOT_T_wrt_IMU) + init_pose_T);
+    const V3D init_T_lidar = realtime_state_point.pos;
+    const V3D MAP_T_lidar = BOT_R_wrt_IMU * init_T_lidar + BOT_T_wrt_IMU;
+    const V3D MAP_T_BOT = init_pose_R * (MAP_T_lidar - MAP_R_BOT * BOT_T_wrt_IMU) + init_pose_T;
 
     out.pose.position.x = MAP_T_BOT(0);
     out.pose.position.y = MAP_T_BOT(1);
@@ -694,23 +689,19 @@ void set_posestamp(T & out)
 template<typename T>
 void set_velstamp(T & out)
 {
-    V3D init_T_lidar(realtime_state_point.vel(0), 
-                     realtime_state_point.vel(1), 
-                     realtime_state_point.vel(2));
-    V3D MAP_T_lidar(init_pose_R * BOT_R_wrt_IMU * init_T_lidar);
+    const V3D MAP_T_lidar = init_pose_R * BOT_R_wrt_IMU * realtime_state_point.vel;
 
-    out.twist.linear.x = MAP_T_lidar(0);
-    out.twist.linear.y = MAP_T_lidar(1);
-    out.twist.linear.z = MAP_T_lidar(2);
+    out.twist.linear.x = MAP_T_lidar.x();
+    out.twist.linear.y = MAP_T_lidar.y();
+    out.twist.linear.z = MAP_T_lidar.z();
 
-    V3D omega_lidar(last_imu_ptr->angular_velocity.x,
-                    last_imu_ptr->angular_velocity.y,
-                    last_imu_ptr->angular_velocity.z);
-    V3D omega_map(BOT_R_wrt_IMU * omega_lidar);
+    const V3D omega_map = BOT_R_wrt_IMU * V3D(last_imu_ptr->angular_velocity.x,
+                                              last_imu_ptr->angular_velocity.y,
+                                              last_imu_ptr->angular_velocity.z);
 
-    out.twist.angular.x = omega_map(0);
-    out.twist.angular.y = omega_map(1);
-    out.twist.angular.z = omega_map(2);
+    out.twist.angular.x = omega_map.x();
+    out.twist.angular.y = omega_map.y();
+    out.twist.angular.z = omega_map.z();
 }
 
 void publish_odometry(const ros::Publisher & pubOdomAftMapped)
@@ -1014,6 +1005,29 @@ int main(int argc, char** argv)
             ("/Odometry", 100000);
     ros::Publisher pubPath          = nh.advertise<nav_msgs::Path> 
             ("/path", 100000);
+
+    // Create a thread for realtime_update function
+    std::thread realtime_update_thread([&]()
+    {
+        ros::Rate rate_realtime(1000); // Set the rate for the realtime update thread
+        while (ros::ok())
+        {
+            // auto start = std::chrono::steady_clock::now();
+            if (flg_updated)
+            {
+                flg_updated = false;
+                continue;
+            }
+            if (flg_first_ekf && realtime_update())
+            {
+                publish_odometry(pubOdomAftMapped);
+                // auto end = std::chrono::steady_clock::now();
+                // std::chrono::duration<double> elapsed = end - start;
+                // std::cout << "Loop execution time: " << elapsed.count() * 1000 << " ms" << std::endl;
+            }
+            rate_realtime.sleep();
+        }
+    });
 //------------------------------------------------------------------------------------------------------
     signal(SIGINT, SigHandle);
     ros::Rate rate(5000);
@@ -1171,13 +1185,6 @@ int main(int argc, char** argv)
                 dump_lio_state_to_log(fp);
             }
         }
-        else if (flg_first_ekf && realtime_update())
-        {
-            if (flg_updated)
-                flg_updated = false;
-            else
-                publish_odometry(pubOdomAftMapped);
-        }
 
         status = ros::ok();
         rate.sleep();
@@ -1214,6 +1221,10 @@ int main(int argc, char** argv)
             s_vec5.push_back(s_plot[i]);
         }
         fclose(fp2);
+    }
+
+    if (realtime_update_thread.joinable()) {
+        realtime_update_thread.join();
     }
 
     return 0;

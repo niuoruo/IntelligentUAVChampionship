@@ -80,13 +80,13 @@ void Odom_Data_t::feed(nav_msgs::OdometryConstPtr pMsg) {
     static double az = 0.0;
 
     double k = (1.0 / (1.0 + 1.0/(2.0 * 3.14 * (rcv_stamp.toSec() - last_time) * 5)));
-    ax += k * (msg.twist.twist.linear.x - ax);
-    ay += k * (msg.twist.twist.linear.y - ay);
-    az += k * (msg.twist.twist.linear.z - az);
+    ax += k * (msg.twist.twist.angular.x - ax);
+    ay += k * (msg.twist.twist.angular.y - ay);
+    az += k * (msg.twist.twist.angular.z - az);
 
-    msg.twist.twist.linear.x = ax;
-    msg.twist.twist.linear.y = ay;
-    msg.twist.twist.linear.z = az;
+    msg.twist.twist.angular.x = ax;
+    msg.twist.twist.angular.y = ay;
+    msg.twist.twist.angular.z = az;
     
     last_time = rcv_stamp.toSec();
 

@@ -46,7 +46,7 @@ public:
     Eigen::Vector2d acc_vec = acc * Eigen::Vector2d(cos(yaw), sin(yaw));
     vel += acc_vec * delta_t;
     vel *= 0.9; // gradually stop like a real obstacle
-    constexpr double MAX_VEL = 2.0;
+    constexpr double MAX_VEL = 12.0;
     if (vel.norm() > MAX_VEL)
     {
       vel /= vel.norm() / MAX_VEL;

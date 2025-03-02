@@ -62,8 +62,8 @@
         <arg name="fx" value="387.229248046875"/>
         <arg name="fy" value="387.229248046875"/>
         <!-- maximum velocity, acceleration and jerk the drone will reach -->
-        <arg name="max_vel" value="8.0" />
-        <arg name="max_acc" value="8.0" />
+        <arg name="max_vel" value="10.0" />
+        <arg name="max_acc" value="2.0" />
         <arg name="max_jer" value="5.0" />
         <!--always set to 1.5 times grater than sensing horizen-->
         <arg name="planning_horizon" value="30.0" />
@@ -109,7 +109,7 @@
     <node pkg="ego_planner" name="drone_$(arg drone_id)_traj_server" type="traj_server" output="screen">
         <remap from="position_cmd" to="drone_$(arg drone_id)_planning/pos_cmd"/>
         <remap from="~planning/trajectory" to="drone_$(arg drone_id)_planning/trajectory"/>
-        <param name="traj_server/time_forward" value="0.1" type="double"/>
+        <param name="traj_server/time_forward" value="0.05" type="double"/>
     </node>
 </launch>
     

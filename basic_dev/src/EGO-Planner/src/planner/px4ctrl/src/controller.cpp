@@ -206,7 +206,7 @@ void Controller::update(
 	}
 	Eigen::Vector3d u_v_p = wRc * Kv * cRw * e_v;
 	const std::vector<double> integration_output_limits = {0.6, 0.6, 0.6};
-	const std::vector<double> d_output_limits = {1.0, 1.0, 0.8};
+	const std::vector<double> d_output_limits = {1.4, 1.4, 1.2};
 	Eigen::Vector3d u_v_i = wRc * Kvi * cRw * int_e_v;
 	for (size_t k = 0; k < 3; ++k) {
 		if (std::fabs(u_v_i(k)) > integration_output_limits[k]) {

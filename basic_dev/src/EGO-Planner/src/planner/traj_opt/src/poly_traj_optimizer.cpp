@@ -43,7 +43,7 @@ namespace ego_planner
     lbfgs::lbfgs_parameter_t lbfgs_params;
     lbfgs::lbfgs_load_default_parameters(&lbfgs_params);
     lbfgs_params.mem_size = 16;
-    lbfgs_params.max_iterations = 200;
+    lbfgs_params.max_iterations = 100;
     lbfgs_params.min_step = 1e-32;
     // lbfgs_params.abs_curv_cond = 0;
     lbfgs_params.past = 3;
@@ -598,7 +598,7 @@ namespace ego_planner
         if (j < 0) // fail to get the obs free point
         {
           ROS_ERROR("The drone is in obstacle. It means a crash in real-world.");
-          grid_map_->flag_clear = true;
+          // grid_map_->flag_clear = true;
           in_id = 0;
         }
 

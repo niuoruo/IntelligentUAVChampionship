@@ -20,6 +20,8 @@ std::normal_distribution<double> gauss_dist{0.0, 1.0};
 ErrorStateKalmanFilter* g_eskf_ptr;
 int odo_cnt = 0;
 ros::Publisher g_eskf_odom_puber;
+geometry_msgs::PoseStamped gt_odom;
 void odom_local_ned_cb(const geometry_msgs::PoseStamped::ConstPtr& msg);
 void init_pose_ned_cb(const geometry_msgs::PoseStamped::ConstPtr& msg);
+void pose_gt_ned_cb(const geometry_msgs::PoseStamped::ConstPtr& msg);
 void imu_cb(const sensor_msgs::Imu::ConstPtr& msg);

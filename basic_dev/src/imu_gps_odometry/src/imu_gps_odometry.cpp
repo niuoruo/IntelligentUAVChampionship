@@ -1,16 +1,20 @@
 #include "imu_gps_odometry.hpp"
+#include <tf/transform_datatypes.h>
+#include <tf/transform_broadcaster.h>
+
 
 int main(int argc, char** argv)
 {
     //(重力， P_位置不确定度_std, P_速度不确定度_std, P_角度不确定度_std, P_角速度bias不确定度_std, P_加速度bias不确定度_std,
     //gps位置测量噪声_std gpsz姿态测量噪声_std, imu角速度测量噪声_std, imu加速度测量噪声_std)
-    g_eskf_ptr = new ErrorStateKalmanFilter(-9.81083, 0.1, 0.1, 0.1, 0.0003158085227, 0.001117221, 0.5*10, 1.0, 0.00143, 0.0386);
+    g_eskf_ptr = new ErrorStateKalmanFilter(-9.81083, 0.1, 0.01, 0.1, 0.0003158085227, 0.001117221, 0.001, 100.0, 0.00143, 0.0386);
     ros::init(argc, argv, "odometry"); // 初始化ros 节点，命名为 basic
     ros::NodeHandle n; // 创建node控制句柄
     g_eskf_odom_puber = n.advertise<geometry_msgs::PoseStamped>("/eskf_odom", 1);
     ros::Subscriber odom_suber = n.subscribe<geometry_msgs::PoseStamped>("/airsim_node/drone_1/gps", 1, odom_local_ned_cb);//状态真值，用于赛道一
     ros::Subscriber imu_suber = n.subscribe<sensor_msgs::Imu>("airsim_node/drone_1/imu/imu", 1, imu_cb);//imu数据
     ros::Subscriber init_pose_suber = n.subscribe<geometry_msgs::PoseStamped>("/airsim_node/initial_pose", 1, init_pose_ned_cb);
+    ros::Subscriber pose_gt_suber = n.subscribe<geometry_msgs::PoseStamped>("/airsim_node/drone_1/debug/pose_gt", 1, pose_gt_ned_cb);
     ros::Rate loop_rate(100);
     while(ros::ok()){
         ros::spinOnce();
@@ -31,6 +35,11 @@ void init_pose_ned_cb(const geometry_msgs::PoseStamped::ConstPtr& msg)
         g_eskf_ptr->Init(r0, Eigen::Vector3d::Zero(),msg->header.stamp.toNSec());
         g_eskf_ptr->m_isInitailed = true;
     }
+}
+
+void pose_gt_ned_cb(const geometry_msgs::PoseStamped::ConstPtr& msg)
+{
+    gt_odom = *msg;
 }
 
 void odom_local_ned_cb(const geometry_msgs::PoseStamped::ConstPtr& msg)
@@ -70,5 +79,22 @@ void imu_cb(const sensor_msgs::Imu::ConstPtr& msg)
         // msg2.twist.twist.angular.y = angle_vel.y();
         // msg2.twist.twist.angular.z = angle_vel.z();
         g_eskf_odom_puber.publish(msg2);
+
+        // Calculate position error
+        Eigen::Vector3d pos_error = Eigen::Vector3d(gt_odom.pose.position.x, gt_odom.pose.position.y, gt_odom.pose.position.z) - pos;
+        
+        // Calculate orientation error
+        Eigen::Quaterniond gt_q(gt_odom.pose.orientation.w, gt_odom.pose.orientation.x, gt_odom.pose.orientation.y, gt_odom.pose.orientation.z);
+        Eigen::Quaterniond q_error = gt_q.inverse() * q;
+        Eigen::Vector3d angle_error = q_error.vec();
+        // Convert quaternion error to roll, pitch, yaw
+        double roll_error, pitch_error, yaw_error;
+        tf::Matrix3x3(tf::Quaternion(q_error.x(), q_error.y(), q_error.z(), q_error.w())).getRPY(roll_error, pitch_error, yaw_error);
+
+        // Output the errors
+        std::cout << "Position error: " << pos_error.transpose() << std::endl;
+        std::cout << "Roll error: " << roll_error / 3.1415 * 180.0 << std::endl;
+        std::cout << "Pitch error: " << pitch_error / 3.1415 * 180.0 << std::endl;
+        std::cout << "Yaw error: " << yaw_error / 3.1415 * 180.0 << std::endl;
     }
 }

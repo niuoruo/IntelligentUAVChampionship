@@ -157,6 +157,8 @@ namespace ego_planner
     }
 
     /*** STEP 3: Store and display results ***/
+    cout << "flag_polyInit=" << (flag_polyInit ? "yes" : "no") << endl;
+    cout << "flag_randomPolyTraj=" << (flag_randomPolyTraj ? "yes" : "no") << endl;
     cout << "Success=" << (flag_success ? "yes" : "no") << endl;
     if (flag_success)
     {

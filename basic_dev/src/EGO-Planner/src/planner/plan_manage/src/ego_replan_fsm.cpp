@@ -9,31 +9,33 @@ namespace ego_planner
                                      const nav_msgs::Odometry& odom_A,
                                      const geometry_msgs::PoseStamped& pose_B)
   {
-    // Eigen::Vector3d p_A_base(odom_A.pose.pose.position.x,
-    //                          odom_A.pose.pose.position.y,
-    //                          odom_A.pose.pose.position.z);
-    // Eigen::Quaterniond q_A_base(odom_A.pose.pose.orientation.w,
-    //                             odom_A.pose.pose.orientation.x,
-    //                             odom_A.pose.pose.orientation.y,
-    //                             odom_A.pose.pose.orientation.z);
-
-    // Eigen::Vector3d p_B_base(pose_B.pose.position.x,
-    //                          pose_B.pose.position.y,
-    //                          pose_B.pose.position.z);
-    // Eigen::Quaterniond q_B_base(pose_B.pose.orientation.w,
-    //                             pose_B.pose.orientation.x,
-    //                             pose_B.pose.orientation.y,
-    //                             pose_B.pose.orientation.z);
+Eigen::Vector3d p_A_base(odom_A.pose.pose.position.x,
+                             odom_A.pose.pose.position.y,
+                             odom_A.pose.pose.position.z);
+    Eigen::Quaterniond q_A_base(odom_A.pose.pose.orientation.w,
+                                odom_A.pose.pose.orientation.x,
+                                odom_A.pose.pose.orientation.y,
+                                odom_A.pose.pose.orientation.z);
+    Eigen::Matrix3d q_A_br = q_A_base.toRotationMatrix();
+    Eigen::Vector3d p_B_base(pose_B.pose.position.x,
+                             pose_B.pose.position.y,
+                             pose_B.pose.position.z);
+    Eigen::Quaterniond q_B_base(pose_B.pose.orientation.w,
+                                pose_B.pose.orientation.x,
+                                pose_B.pose.orientation.y,
+                                pose_B.pose.orientation.z);
+    Eigen::Matrix3d q_B_br = q_B_base.toRotationMatrix();
+        Eigen::Matrix3d R = q_A_br * q_B_br.inverse();
 
     // Eigen::Quaterniond q_A_B = q_A_base * q_B_base.inverse(); // 旋转变换
-    // Eigen::Vector3d p_A_B = p_A_base - q_A_B * p_B_base;      // 平移变换
+     Eigen::Vector3d p_A_B =  R*(waypoint_B-p_B_base);      // 平移变换
 
     // Eigen::Vector3d waypoint_A = q_A_B * waypoint_B + p_A_B;
-
+    
     Eigen::Vector3d diff = Eigen::Vector3d(pose_B.pose.position.x - odom_A.pose.pose.position.x,
                                            pose_B.pose.position.y - odom_A.pose.pose.position.y,
                                            pose_B.pose.position.z - odom_A.pose.pose.position.z);
-    Eigen::Vector3d waypoint_A = waypoint_B - diff;
+    Eigen::Vector3d waypoint_A = p_A_B+ p_B_base- diff;
 
     return waypoint_A;
   }

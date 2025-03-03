@@ -24,9 +24,9 @@ gain:
     track:
         Kp_gain: 1.5
         thresh: 0.1
-        Kp0: 1.3 #1.5
-        Kp1: 1.3 #5
-        Kp2: 1.4
+        Kp0: 1.8 #1.5
+        Kp1: 1.8 #5
+        Kp2: 2.2
         Kpd0: 0.0
         Kpd1: 0.0
         Kpd2: 0.0
@@ -46,7 +46,7 @@ gain:
         Krp: 10.0 #25
         Kdrp: 0.5 #25
         Kdyaw: 0.5 #25
-        Kyawd: 15.0 
+        Kyawd: 10.0 
         Krpd: 12.0
 
 msg_timeout:
@@ -56,11 +56,11 @@ msg_timeout:
     imu:  0.5
 
 pwm_param:
-    C_t: 0.000367892
-    C_M: 4.889021e-6
+    C_t: 0.000367717
+    C_M: 4.888486e-6
     arm_length:  0.18 # m
-
-    sqrtpwm2rads: 1159.7396
+    
+    sqrtpwm2rads: 1159.74
     Ixx: 0.0046890742
     Iyy: 0.0069312
     Izz: 0.010421166

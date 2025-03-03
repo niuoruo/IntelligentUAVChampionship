@@ -195,6 +195,11 @@ void Controller::update(
 	else
 		u_p = wRc * Kp * cRw * e_p;
 
+  Eigen::Vector3d N0(0, 0, 1);
+  Eigen::Vector3d N = odom.q * N0;
+  double water_angle = std::atan2(std::sqrt(N.x() * N.x() + N.y() * N.y()), N.z());
+	u_p(2) /= std::cos(water_angle);
+
 	u.des_v_real = des.v + u_p; // For estimating hover percent
 	e_v = des.v + u_p - odom.v;
 
@@ -255,7 +260,7 @@ void Controller::update(
 	u.yaw_rate = reference_inputs.yaw_rate+feedback_bodyrates.z();
 
 	// ROS_INFO_STREAM("roll_rate: "<<u.roll_rate);
-	double limit_rate = 3.0*3.14;
+	double limit_rate = 6.0*3.14;
 	if(u.roll_rate>=limit_rate)
 		ROS_INFO("ROLL RATE LIMIT!");
 	if(u.pitch_rate>=limit_rate)
@@ -278,8 +283,8 @@ void Controller::update(
 		ROS_INFO("2ROLL RATE LIMIT!");
 	if(u.pitch_rate>=limit_rate)
 		ROS_INFO("2pitch_rate_limit!");
-	uav_utils::limit_range(u.roll_rate, 3.0*3.14);
-	uav_utils::limit_range(u.pitch_rate, 3.0*3.14);
+	uav_utils::limit_range(u.roll_rate, 9.0*3.14);
+	uav_utils::limit_range(u.pitch_rate, 9.0*3.14);
 	uav_utils::limit_range(u.yaw_rate, 3.0);
 
 	// printf("thrust: %f \n",u.thrust);

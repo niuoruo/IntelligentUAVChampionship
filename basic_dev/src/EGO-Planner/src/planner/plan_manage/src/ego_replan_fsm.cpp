@@ -29,7 +29,7 @@ namespace ego_planner
     // Eigen::Vector3d p_A_B = p_A_base - q_A_B * p_B_base;      // 平移变换
 
     // Eigen::Vector3d waypoint_A = q_A_B * waypoint_B + p_A_B;
-    
+
     Eigen::Vector3d diff = Eigen::Vector3d(pose_B.pose.position.x - odom_A.pose.pose.position.x,
                                            pose_B.pose.position.y - odom_A.pose.pose.position.y,
                                            pose_B.pose.position.z - odom_A.pose.pose.position.z);
@@ -242,7 +242,7 @@ namespace ego_planner
       double t_cur = ros::Time::now().toSec() - info->start_time;
       t_cur = min(info->duration, t_cur);
       Eigen::Vector3d pos = info->traj.getPos(t_cur);
-      bool touch_the_goal = ((local_target_pt_ - final_goal_).norm() < 1e-2);
+      bool touch_the_goal = ((local_target_pt_ - final_goal_).norm() < 1.0);
 
       const PtsChk_t* chk_ptr = &planner_manager_->traj_.local_traj.pts_chk;
       bool close_to_current_traj_end = (chk_ptr->size() >= 1 && chk_ptr->back().size() >= 1) ? chk_ptr->back().back().first - t_cur < emergency_time_ : 0; // In case of empty vector
@@ -640,22 +640,17 @@ namespace ego_planner
   {
     bool success = false;
     std::vector<Eigen::Vector3d> one_pt_wps;
-    Eigen::Vector3d wp;
-    if (flag_gps_init_)
-      wp = transformWaypointToA(next_wp, odom_, gps_pos_);
-    else
-      wp = next_wp;
-
-    one_pt_wps.push_back(wp);
+    one_pt_wps.push_back(next_wp);
     success = planner_manager_->planGlobalTrajWaypoints(
         odom_pos_, odom_vel_, Eigen::Vector3d::Zero(),
-        one_pt_wps, Eigen::Vector3d::Zero(), Eigen::Vector3d::Zero());
+        one_pt_wps, Eigen::Vector3d::Zero(), 
+        Eigen::Vector3d::Zero());
 
-    visualization_->displayGoalPoint(wp, Eigen::Vector4d(0, 0.5, 0.5, 1), 0.3, 0);
+    visualization_->displayGoalPoint(next_wp, Eigen::Vector4d(0, 0.5, 0.5, 1), 0.3, 0);
 
     if (success)
     {
-      final_goal_ = wp;
+      final_goal_ = next_wp;
 
       /*** display ***/
       constexpr double step_size_t = 0.1;

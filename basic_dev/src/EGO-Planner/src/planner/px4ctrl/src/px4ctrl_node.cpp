@@ -67,6 +67,9 @@ int main(int argc, char* argv[]) {
     // fsm.controller.debug_roll_pub = nh.advertise<std_msgs::Float32>("/debug_roll",10);
     // fsm.controller.debug_pitch_pub = nh.advertise<std_msgs::Float32>("/debug_pitch",10);
     // fsm.traj_start_trigger_pub = nh.advertise<geometry_msgs::PoseStamped>("/traj_start_trigger", 10);
+
+    sleep(3);
+
     ros::Rate r(param.ctrl_rate);
     // ---- process ----
     while (ros::ok()) {

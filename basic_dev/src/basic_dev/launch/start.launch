@@ -6,8 +6,6 @@
 
     <node pkg ="imu_gps_odometry" name ="imu_gps_odometry" type ="imu_gps_odometry" output = "screen"/>
 
-    <node pkg="rosbash" name="sleep_node" type="sleep" args="5"/>
-
     <include file="$(find ego_planner)/launch/single_drone.launch"/>
 
 </launch>

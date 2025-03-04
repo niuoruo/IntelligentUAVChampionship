@@ -31,6 +31,7 @@ OpenCV
 cv_bridge
 pcl_ros
 pcl_conversions
+fast_lio
 )
 
 catkin_package(

@@ -1,4 +1,5 @@
-#!/bin/bash
-# cd /basic_dev
-# source devel/setup.bash
-# rosrun basic_dev basic_dev
+#! /bin/bash
+sleep 8
+cd /basic_dev
+source devel/setup.bash
+roslaunch basic_dev start.launch

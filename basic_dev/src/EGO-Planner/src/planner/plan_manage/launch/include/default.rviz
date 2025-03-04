@@ -8,6 +8,8 @@ Panels:
         - /Status1
         - /simulation_map1/Autocompute Value Bounds1
         - /drone01
+        - /drone01/Planning1
+        - /drone01/Planning1/goal_point1
         - /drone01/Planning1/drone_path1
         - /drone01/Planning1/drone_path1/Offset1
         - /drone01/Mapping1
@@ -269,13 +271,13 @@ Visualization Manager:
         - Class: rviz/Group
           Displays:
             - Class: rviz/Marker
-              Enabled: false
+              Enabled: true
               Marker Topic: /drone_0_ego_planner_node/goal_point
               Name: goal_point
               Namespaces:
-                {}
+                "": true
               Queue Size: 100
-              Value: false
+              Value: true
             - Class: rviz/Marker
               Enabled: false
               Marker Topic: /drone_0_ego_planner_node/global_list
@@ -309,13 +311,13 @@ Visualization Manager:
               Queue Size: 100
               Value: false
             - Class: rviz/Marker
-              Enabled: false
+              Enabled: true
               Marker Topic: /drone_0_ego_planner_node/init_list
               Name: InitTraj
               Namespaces:
-                {}
+                "": true
               Queue Size: 100
-              Value: false
+              Value: true
             - Alpha: 1
               Buffer Length: 1
               Class: rviz/Path
@@ -6017,7 +6019,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/ThirdPersonFollower
-      Distance: 39.29044723510742
+      Distance: 49.28593826293945
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -6025,17 +6027,17 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: 5.207300186157227
-        Y: 7.670040130615234
+        X: 13.330671310424805
+        Y: 5.317537307739258
         Z: -10.562766075134277
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 1.3447965383529663
+      Pitch: 1.4297964572906494
       Target Frame: body
-      Yaw: 1.5182948112487793
+      Yaw: 2.1232964992523193
     Saved:
       - Class: rviz/FPS
         Enable Stereo Rendering:

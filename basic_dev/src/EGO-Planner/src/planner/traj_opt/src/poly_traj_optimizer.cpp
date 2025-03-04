@@ -102,6 +102,7 @@ namespace ego_planner
             flag_still_unsafe = true;
             restart_nums++;
             PRINTF_COND("\033[32miter=%d,time(ms)=%5.3f, fine check collided, keep optimizing\n\033[0m", iter_num_, time_ms);
+            std::cout << "Reason: Collision with obstacles during fine check." << std::endl;
           }
         }
         else
@@ -110,6 +111,7 @@ namespace ego_planner
           flag_still_unsafe = true;
           restart_nums++;
           wei_swarm_mod_ *= 2;
+          std::cout << "Reason: Swarm clearance not satisfied." << std::endl;
         }
       }
       else if (result == lbfgs::LBFGSERR_CANCELED)
@@ -117,11 +119,13 @@ namespace ego_planner
         flag_force_return = true;
         rebound_times++;
         PRINTF_COND("iter=%d, time(ms)=%f, rebound\n", iter_num_, time_ms);
+        std::cout << "Reason: Optimization canceled, rebound." << std::endl;
       }
       else
       {
         PRINTF_COND("iter=%d, time(ms)=%f, error\n", iter_num_, time_ms);
         ROS_WARN_COND(VERBOSE_OUTPUT, "Solver error. Return = %d, %s. Skip this planning.", result, lbfgs::lbfgs_strerror(result));
+        std::cout << "Reason: Solver error. Return = " << result << ", " << lbfgs::lbfgs_strerror(result) << std::endl;
       }
 
     } while ((flag_still_unsafe && restart_nums < 3) ||
@@ -226,7 +230,7 @@ namespace ego_planner
 
     /*** Segment the initial trajectory according to obstacles ***/
     vector<std::pair<int, int>> segment_ids;
-    constexpr int ENOUGH_INTERVAL = 2;
+    constexpr int ENOUGH_INTERVAL = 10;
     int in_id = -1, out_id = -1;
     int same_occ_state_times = ENOUGH_INTERVAL + 1;
     bool occ, last_occ = false;

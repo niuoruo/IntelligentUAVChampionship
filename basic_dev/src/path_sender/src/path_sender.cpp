@@ -76,9 +76,7 @@ PathSender::PathSender(ros::NodeHandle *nh)
 {  
 
     POintSet();
-    std::string ROOT_DIR = std::filesystem::current_path().string();
-    paths=loadPathsFromYAML(std::string(std::string(ROOT_DIR) + "/src/path_sender/config/paths.yaml"));
-     //std::cout<<std::string(std::string(ROOT_DIR) + "/src/path_sender/config/paths.yaml")<<std::endl;
+    paths=loadPathsFromYAML(std::string("/basic_dev/src/path_sender/config/paths.yaml"));
     //无人机信息通过如下命令订阅，当收到消息时自动回调对应的函数
     initial_pose_suber = nh->subscribe<geometry_msgs::PoseStamped>("/airsim_node/initial_pose", 1, std::bind(&PathSender::initial_pose_cb, this, std::placeholders::_1));//状态真值，用于赛道一
     end_pose_suber = nh->subscribe<geometry_msgs::PoseStamped>("/airsim_node/end_goal", 1, std::bind(&PathSender::end_pose_cb, this, std::placeholders::_1));//状态真值，用于赛道一
@@ -197,11 +195,11 @@ void PathSender::timeCB(const ros::TimerEvent& event)
           geometry_msgs::Point temp_point;
           temp_point.x=end_point[end_num].x;
           temp_point.y=end_point[end_num].y;
-          temp_point.z=end_point[end_num].z-150;
+          temp_point.z=end_point[end_num].z+150;
           path.emplace_back(temp_point);//终点后面一点向上150m
           temp_point.x=end_point[initial_num].x;
           temp_point.y=end_point[initial_num].y;
-          temp_point.z=end_point[initial_num].z-150;
+          temp_point.z=end_point[initial_num].z+150;
           path.emplace_back(temp_point);//起点后面一点向上150m
           path.emplace_back(end_point[initial_num]);//起点后面一点
           path.emplace_back(station[initial_num]);//起点后面一点

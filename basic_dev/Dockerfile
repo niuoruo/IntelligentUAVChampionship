@@ -14,8 +14,10 @@ ENV ROS_DISTRO noetic
 
 WORKDIR /basic_dev/
 RUN . /opt/ros/${ROS_DISTRO}/setup.sh && ./src/livox_ros_driver2/build.sh ROS1 && \ 
+    catkin_make -DCATKIN_WHITELIST_PACKAGES="livox_ros_driver2" && \ 
     catkin_make -DCATKIN_WHITELIST_PACKAGES="airsim_ros" && \
-    catkin_make -DCATKIN_WHITELIST_PACKAGES="" && \ 
+    catkin_make -DCATKIN_WHITELIST_PACKAGES="fast_lio" && \ 
+    catkin_make -DCATKIN_WHITELIST_PACKAGES="path_sender" && \ 
     catkin_make -DCATKIN_WHITELIST_PACKAGES=""
 
-# ENTRYPOINT [ "/setup.bash" ]
+ENTRYPOINT [ "/setup.bash" ]

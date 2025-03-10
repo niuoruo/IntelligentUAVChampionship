@@ -47,7 +47,7 @@ namespace ego_planner
     ros::Duration t_init, t_opt;
 
     static int count = 0;
-    cout << "\033[47;30m\n[" << t_start << "] Drone " << pp_.drone_id << " Replan " << count++ << "\033[0m" << endl;
+    //cout << "\033[47;30m\n[" << t_start << "] Drone " << pp_.drone_id << " Replan " << count++ << "\033[0m" << endl;
     // cout.precision(3);
     // cout << "start: " << start_pt.transpose() << ", " << start_vel.transpose() << "\ngoal:" << local_target_pt.transpose() << ", " << local_target_vel.transpose()
     //      << endl;
@@ -157,17 +157,17 @@ namespace ego_planner
     }
 
     /*** STEP 3: Store and display results ***/
-    cout << "flag_polyInit=" << (flag_polyInit ? "yes" : "no") << endl;
-    cout << "flag_randomPolyTraj=" << (flag_randomPolyTraj ? "yes" : "no") << endl;
-    cout << "Success=" << (flag_success ? "yes" : "no") << endl;
+    // cout << "flag_polyInit=" << (flag_polyInit ? "yes" : "no") << endl;
+    // cout << "flag_randomPolyTraj=" << (flag_randomPolyTraj ? "yes" : "no") << endl;
+    // cout << "Success=" << (flag_success ? "yes" : "no") << endl;
     if (flag_success)
     {
       static double sum_time = 0;
       static int count_success = 0;
       sum_time += (t_init + t_opt).toSec();
       count_success++;
-      printf("Time:\033[42m%.3fms,\033[0m init:%.3fms, optimize:%.3fms, avg=%.3fms\n",
-             (t_init + t_opt).toSec() * 1000, t_init.toSec() * 1000, t_opt.toSec() * 1000, sum_time / count_success * 1000);
+      // printf("Time:\033[42m%.3fms,\033[0m init:%.3fms, optimize:%.3fms, avg=%.3fms\n",
+      //        (t_init + t_opt).toSec() * 1000, t_init.toSec() * 1000, t_opt.toSec() * 1000, sum_time / count_success * 1000);
       // cout << "total time:\033[42m" << (t_init + t_opt).toSec()
       //      << "\033[0m,init:" << t_init.toSec()
       //      << ",optimize:" << t_opt.toSec()
@@ -282,7 +282,7 @@ namespace ego_planner
       double t_to_lc_end = traj_.local_traj.duration - passed_t_on_lctraj;
       if (t_to_lc_end < 0)
       {
-        ROS_INFO("t_to_lc_end < 0, exit and wait for another call.");
+        //ROS_INFO("t_to_lc_end < 0, exit and wait for another call.");
         return false;
       }
       double t_to_lc_tgt = t_to_lc_end +
@@ -360,7 +360,8 @@ namespace ego_planner
 
     if ((global_end_pt - local_target_pos).norm() < (pp_.max_vel_ * pp_.max_vel_) / (2 * pp_.max_acc_))
     {
-      local_target_vel = Eigen::Vector3d::Zero();
+      //std::cout<<"ffffffff"<<std::endl;
+      local_target_vel = traj_.global_traj.traj.getVel(t - traj_.global_traj.global_start_time);
     }
     else
     {
@@ -455,10 +456,14 @@ namespace ego_planner
 
     globalMJO.reset(headState, tailState, waypoints.size());
 
-    double des_vel = pp_.max_vel_ / 1.5;
+    double des_vel =end_vel.norm();
+    if(des_vel > 8)
+    {
+      des_vel =8;
+    }
     Eigen::VectorXd time_vec(waypoints.size());
 
-    for (int j = 0; j < 2; ++j)
+    for (int j = 0; j < 5; ++j)
     {
       for (size_t i = 0; i < waypoints.size(); ++i)
       {
@@ -468,9 +473,11 @@ namespace ego_planner
 
       globalMJO.generate(innerPts, time_vec);
 
-      if (globalMJO.getTraj().getMaxVelRate() < pp_.max_vel_ ||
-          start_vel.norm() > pp_.max_vel_ ||
-          end_vel.norm() > pp_.max_vel_)
+      if (globalMJO.getTraj().getMaxVelRate() < pp_.max_vel_ &&
+          start_vel.norm() < pp_.max_vel_ &&
+          end_vel.norm() < pp_.max_vel_
+          && globalMJO.getTraj().getMaxAccRate() < pp_.max_acc_
+)
       {
         break;
       }
@@ -484,7 +491,7 @@ namespace ego_planner
              << tailState << endl;
       }
 
-      des_vel /= 1.5;
+     // des_vel *= 0.9;
     }
 
     auto time_now = ros::Time::now();

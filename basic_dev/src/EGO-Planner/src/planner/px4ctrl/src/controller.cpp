@@ -6,6 +6,8 @@
 #include <geometry_msgs/QuaternionStamped.h>
 #include <boost/format.hpp>
 #include "std_msgs/Float32.h"
+#include "airsim_ros/VelCmd.h"
+
 
 using namespace Eigen;
 using std::cout;
@@ -315,11 +317,23 @@ airsim_ros::RotorPWM Controller::computePWM(
 	return pwm;
 }
 
-void Controller::publish_ctrl(const Controller_Output_t& u, const ros::Time& stamp, bool is_init)
+void Controller::publish_ctrl(const Controller_Output_t& u, const ros::Time& stamp, bool is_init,Command_Data_t& cmd_data,float x,float y,float z,float w)
 {
 
 	static int cnt = 0;
-	if (cnt < 100)
+    Eigen::Quaterniond q(w,x,y,z);
+	Eigen::Matrix3d rotationMatrix=q.toRotationMatrix();
+    Eigen::Vector3d originalPoint(cmd_data.v(0),cmd_data.v(1),cmd_data.v(2));
+	Eigen::Matrix3d tran;
+	tran <<
+      1.0, 0.0, 0.0,
+      0.0, -1.0, 0.0,
+      0.0, 0.0, -1.0
+		;
+
+    rotationMatrix = tran * rotationMatrix * tran;
+    Eigen::Vector3d rotatedPoint = rotationMatrix.inverse() * originalPoint;
+if (cnt < 100)
 	{
 		std::cout << "here" << std::endl;
 		airsim_ros::RotorPWM pwm;
@@ -352,28 +366,57 @@ void Controller::publish_ctrl(const Controller_Output_t& u, const ros::Time& sta
 		pwm.rotorPWM3 = 0.178087130188;
 		ctrl_PWM_pub.publish(pwm);
 		return;
-	}
-
-	mavros_msgs::AttitudeTarget msg;
-
-	msg.header.stamp = stamp;
-	msg.header.frame_id = std::string("FCU");
-	
+	}	
+	float yaw = q.toRotationMatrix().eulerAngles(2,1,0)[0];
+	float pitch = q.toRotationMatrix().eulerAngles(2,1,0)[1];
+	// msg.header.stamp = stamp;
+	// msg.header.frame_id = std::string("FCU");
 	// msg.body_rate.x = u.roll_rate;
 	// msg.body_rate.y = u.pitch_rate;
 	// msg.body_rate.z = u.yaw_rate;
 	// msg.thrust = u.thrust;
-
+    //std::cout<<"yaw"<<yaw<<std::endl;
+	//std::cout<<"pitch"<<pitch<<std::endl;
   // ctrl_FCU_pub.publish(msg);
 
 	Eigen::Vector3d torque;
 	torque << u.roll_rate, u.pitch_rate, u.yaw_rate;
 
 	airsim_ros::RotorPWM pwm;
+	airsim_ros::VelCmd vel_cmd;
 	pwm = computePWM(u.thrust, torque);
+	
+    vel_cmd.twist.linear.x =  (-cmd_data.v(0)*cos(yaw)+cmd_data.v(1)*sin(yaw))*(-cos(pitch))-cmd_data.v(2)*sin(pitch);
+	vel_cmd.twist.linear.y = (cmd_data.v(1)*cos(yaw)+cmd_data.v(0)*sin(yaw));
+	// std::cout<<"vel_cmd.twist.linear.x"<<vel_cmd.twist.linear.x<<std::endl;
+	// std::cout<<"vel_cmd.twist.linear.y"<<vel_cmd.twist.linear.y<<std::endl;
+	vel_cmd.twist.linear.z = cmd_data.v(2)*cos(pitch);//(-cmd_data.v(0)*cos(yaw)+cmd_data.v(1)*sin(yaw))*cos(pitch);
+    vel_cmd.twist.linear.x = rotatedPoint(0)*1.5;
+	vel_cmd.twist.linear.y = -rotatedPoint(1)*1.5;
+	vel_cmd.twist.linear.z = -rotatedPoint(2)*1.5;	
+	// if (cnt < 100)
+	// {
+	// 	vel_cmd.twist.linear.z = -0.8;
 
+
+	//     vel_pub.publish(vel_cmd);
+	// 	cnt++;
+	// }
 	ctrl_PWM_pub.publish(pwm);
+		//std::cout<<"vel_cmd.twist.linear.z"<<vel_cmd.twist.linear.z<<std::endl;
 
+	//vel_pub.publish(vel_cmd);
+
+}
+void Controller::pose_cb(const geometry_msgs::PoseStamped::ConstPtr& msg)
+{
+    x=msg->pose.orientation.x;
+	y=msg->pose.orientation.y;
+	z=msg->pose.orientation.z;
+	w=msg->pose.orientation.w;
+	// Eigen::Vector3d eulerAngle = q.matrix().eulerAngles(2,1,0);
+	// ROS_INFO("Get pose data. time: %f, eulerangle: %f, %f, %f, posi: %f, %f, %f\n", msg->header.stamp.sec + msg->header.stamp.nsec*1e-9,
+	// 	eulerAngle[0], eulerAngle[1], eulerAngle[2], msg->pose.position.x, msg->pose.position.y, msg->pose.position.z);
 }
 
 void Controller::publish_zero_ctrl(const ros::Time& stamp)

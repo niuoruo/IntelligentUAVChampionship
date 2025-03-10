@@ -365,6 +365,7 @@ int main(int argc, char **argv)
   ros::Subscriber heartbeat_sub = nh.subscribe("heartbeat", 10, heartbeatCallback);
   ros::Subscriber odomtry_sub = nh.subscribe("/Odometry", 10, odometryCallback);
 
+
   pos_cmd_pub = nh.advertise<airsim_ros::VelCmd>("/airsim_node/drone_1/vel_cmd_body_frame", 50);
   pwm_pub = nh.advertise<airsim_ros::RotorPWM>("/airsim_node/drone_1/rotor_pwm_cmd", 10);
   position_cmd_pub = nh.advertise<quadrotor_msgs::PositionCommand>("/position_command", 10);

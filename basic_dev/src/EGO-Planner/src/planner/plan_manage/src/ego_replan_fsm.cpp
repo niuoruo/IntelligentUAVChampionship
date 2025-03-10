@@ -9,37 +9,33 @@ namespace ego_planner
                                      const nav_msgs::Odometry& odom_A,
                                      const geometry_msgs::PoseStamped& pose_B)
   {
-// Eigen::Vector3d p_A_base(odom_A.pose.pose.position.x,
-//                              odom_A.pose.pose.position.y,
-//                              odom_A.pose.pose.position.z);
-//     Eigen::Quaterniond q_A_base(odom_A.pose.pose.orientation.w,
-//                                 odom_A.pose.pose.orientation.x,
-//                                 odom_A.pose.pose.orientation.y,
-//                                 odom_A.pose.pose.orientation.z);
-//     Eigen::Matrix3d q_A_br = q_A_base.toRotationMatrix();
-//     Eigen::Vector3d p_B_base(pose_B.pose.position.x,
-//                              pose_B.pose.position.y,
-//                              pose_B.pose.position.z);
-//     Eigen::Quaterniond q_B_base(pose_B.pose.orientation.w,
-//                                 pose_B.pose.orientation.x,
-//                                 pose_B.pose.orientation.y,
-//                                 pose_B.pose.orientation.z);
-//     Eigen::Matrix3d q_B_br = q_B_base.toRotationMatrix();
-//         Eigen::Matrix3d R = q_A_br * q_B_br.inverse();
+Eigen::Vector3d p_A_base(odom_A.pose.pose.position.x,
+                             odom_A.pose.pose.position.y,
+                             odom_A.pose.pose.position.z);
+    Eigen::Quaterniond q_A_base(odom_A.pose.pose.orientation.w,
+                                odom_A.pose.pose.orientation.x,
+                                odom_A.pose.pose.orientation.y,
+                                odom_A.pose.pose.orientation.z);
+    Eigen::Matrix3d q_A_br = q_A_base.toRotationMatrix();
+    Eigen::Vector3d p_B_base(pose_B.pose.position.x,
+                             pose_B.pose.position.y,
+                             pose_B.pose.position.z);
+    Eigen::Quaterniond q_B_base(pose_B.pose.orientation.w,
+                                pose_B.pose.orientation.x,
+                                pose_B.pose.orientation.y,
+                                pose_B.pose.orientation.z);
+    Eigen::Matrix3d q_B_br = q_B_base.toRotationMatrix();
+        Eigen::Matrix3d R = q_A_br * q_B_br.inverse();
 
-//     // Eigen::Quaterniond q_A_B = q_A_base * q_B_base.inverse(); // 旋转变换
-//      Eigen::Vector3d p_A_B =  R*(waypoint_B-p_B_base);      // 平移变换
+    // Eigen::Quaterniond q_A_B = q_A_base * q_B_base.inverse(); // 旋转变换
+     Eigen::Vector3d p_A_B =  R*(waypoint_B-p_B_base);      // 平移变换
 
-//     // Eigen::Vector3d waypoint_A = q_A_B * waypoint_B + p_A_B;
+    // Eigen::Vector3d waypoint_A = q_A_B * waypoint_B + p_A_B;
     
-//     Eigen::Vector3d diff = Eigen::Vector3d(pose_B.pose.position.x - odom_A.pose.pose.position.x,
-//                                            pose_B.pose.position.y - odom_A.pose.pose.position.y,
-//                                            pose_B.pose.position.z - odom_A.pose.pose.position.z);
-//     Eigen::Vector3d waypoint_A = p_A_B+ p_B_base- diff;
     Eigen::Vector3d diff = Eigen::Vector3d(pose_B.pose.position.x - odom_A.pose.pose.position.x,
                                            pose_B.pose.position.y - odom_A.pose.pose.position.y,
                                            pose_B.pose.position.z - odom_A.pose.pose.position.z);
-    Eigen::Vector3d waypoint_A = waypoint_B - diff;
+    Eigen::Vector3d waypoint_A = p_A_B+ p_B_base- diff;
 
     return waypoint_A;
   }
@@ -87,7 +83,7 @@ namespace ego_planner
 
     odom_sub_ = nh.subscribe("odom_world", 1, &EGOReplanFSM::odometryCallback, this);
     mandatory_stop_sub_ = nh.subscribe("mandatory_stop", 1, &EGOReplanFSM::mandatoryStopCallback, this);
-    gps_pose_sub_ = nh.subscribe("/eskf_odom", 1, &EGOReplanFSM::gpsPoseCallback, this);
+    gps_pose_sub_ = nh.subscribe("/airsim_node/drone_1/debug/pose_gt", 1, &EGOReplanFSM::gpsPoseCallback, this);
 
     /* Use MINCO trajectory to minimize the message size in wireless communication */
     broadcast_ploytraj_pub_ = nh.advertise<traj_utils::MINCOTraj>("planning/broadcast_traj_send", 10);
@@ -228,7 +224,7 @@ namespace ego_planner
             wp = transformWaypointToA(wps_[wpt_id_], odom_, gps_pos_);
           else
             wp = wps_[wpt_id_];
-        } while((odom_pos_ - wp).norm() < 12.0 && wpt_id_ < waypoint_num_ - 1);
+        } while((odom_pos_ - wp).norm() < 8.0 && wpt_id_ < waypoint_num_ - 1);
 
         planNextWaypoint(wp);
       }
@@ -268,7 +264,7 @@ namespace ego_planner
               wp = transformWaypointToA(wps_[wpt_id_], odom_, gps_pos_);
             else
               wp = wps_[wpt_id_];
-          } while((odom_pos_ - wp).norm() < 12.0 && wpt_id_ < waypoint_num_ - 1);
+          } while((odom_pos_ - wp).norm() < 8.0 && wpt_id_ < waypoint_num_ - 1);
 
           planNextWaypoint(wp);
         }
@@ -279,7 +275,7 @@ namespace ego_planner
       }
       else if ((target_type_ == TARGET_TYPE::PRESET_TARGET || target_type_ == TARGET_TYPE::SUBED_POINTS) &&
                (wpt_id_ < waypoint_num_ - 1) &&
-               (final_goal_ - pos).norm() < 12.0) // case 2: assign the next waypoint
+               (final_goal_ - pos).norm() < 8.0) // case 2: assign the next waypoint
       {
         std::cout << "++++++++++++++++++++++++++++++n\n\n\n\n\n\n\n\n\n\n++++++++++++++++++++++++++++++\n";
         
@@ -291,7 +287,7 @@ namespace ego_planner
             wp = transformWaypointToA(wps_[wpt_id_], odom_, gps_pos_);
           else
             wp = wps_[wpt_id_];
-        } while((odom_pos_ - wp).norm() < 12.0 && wpt_id_ < waypoint_num_ - 1);
+        } while((odom_pos_ - wp).norm() < 8.0 && wpt_id_ < waypoint_num_ - 1);
 
         planNextWaypoint(wp);
       }
@@ -354,15 +350,15 @@ namespace ego_planner
     static string state_str[8] = {"INIT", "WAIT_TARGET", "GEN_NEW_TRAJ", "REPLAN_TRAJ", "EXEC_TRAJ", "EMERGENCY_STOP", "SEQUENTIAL_START"};
     int pre_s = int(exec_state_);
     exec_state_ = new_state;
-    cout << "[" + pos_call + "]"
-         << "Drone:" << planner_manager_->pp_.drone_id << ", from " + state_str[pre_s] + " to " + state_str[int(new_state)] << endl;
+    // cout << "[" + pos_call + "]"
+    //      << "Drone:" << planner_manager_->pp_.drone_id << ", from " + state_str[pre_s] + " to " + state_str[int(new_state)] << endl;
   }
 
   void EGOReplanFSM::printFSMExecState()
   {
     static string state_str[8] = {"INIT", "WAIT_TARGET", "GEN_NEW_TRAJ", "REPLAN_TRAJ", "EXEC_TRAJ", "EMERGENCY_STOP", "SEQUENTIAL_START"};
 
-    cout << "\r[FSM]: state: " + state_str[int(exec_state_)] << ", Drone:" << planner_manager_->pp_.drone_id;
+    //cout << "\r[FSM]: state: " + state_str[int(exec_state_)] << ", Drone:" << planner_manager_->pp_.drone_id;
 
     // some warnings
     if (!have_odom_ || !have_target_ || !have_trigger_ || (planner_manager_->pp_.drone_id >= 1 && !have_recv_pre_agent_))
@@ -608,9 +604,9 @@ namespace ego_planner
 
     if (t_cur > info->duration)
     {
-      start_pt_ = odom_pos_;
+      start_pt_ = info->traj.getPos(t_cur);
       start_vel_ = odom_vel_;
-      start_acc_ = Eigen::Vector3d::Zero();
+      start_acc_ = info->traj.getAcc(t_cur);
     }
     else
     {
@@ -646,10 +642,21 @@ namespace ego_planner
   {
     bool success = false;
     std::vector<Eigen::Vector3d> one_pt_wps;
+    //Eigen::Vector3d end_vel=((next_wp-last_wp)/(next_wp-last_wp).norm())*(odom_vel_.norm()+((20-odom_vel_.norm())/2.0));
+    Eigen::Vector3d end_vel=((next_wp-last_wp)/(next_wp-last_wp).norm())*(odom_vel_.norm()+(8-odom_vel_.norm())/4) ;
+    if(end_vel.norm()>8)
+    {
+      end_vel=(end_vel/end_vel.norm())*8;
+    }
+    std::cout<<"odom_vel_: "<<odom_vel_.norm()<<std::endl;
+    std::cout<<"end_vel: "<<end_vel.norm()<<std::endl;
+
+    last_wp=next_wp;
+    
     one_pt_wps.push_back(next_wp);
     success = planner_manager_->planGlobalTrajWaypoints(
         odom_pos_, odom_vel_, Eigen::Vector3d::Zero(),
-        one_pt_wps, Eigen::Vector3d::Zero(), 
+        one_pt_wps,end_vel, 
         Eigen::Vector3d::Zero());
 
     visualization_->displayGoalPoint(next_wp, Eigen::Vector4d(0, 0.5, 0.5, 1), 0.3, 0);

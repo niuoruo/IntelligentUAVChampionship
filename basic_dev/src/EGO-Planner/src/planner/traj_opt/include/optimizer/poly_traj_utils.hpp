@@ -1172,6 +1172,8 @@ namespace poly_traj
                 coeffMatReversed.col(1) = headPVA.col(1);
                 coeffMatReversed.col(0) = headPVA.col(0);
                 b = coeffMatReversed.transpose();
+
+               /// std::cout<<"yesyeyse"<<std::endl;
             }
             else
             {
@@ -1250,6 +1252,7 @@ namespace poly_traj
 
                 A.factorizeLU();
                 A.solve(b);
+               // std::cout<<"nononno"<<std::endl;
 
                 return;
             }

@@ -43,7 +43,7 @@ namespace ego_planner
     lbfgs::lbfgs_parameter_t lbfgs_params;
     lbfgs::lbfgs_load_default_parameters(&lbfgs_params);
     lbfgs_params.mem_size = 16;
-    lbfgs_params.max_iterations = 100;
+    lbfgs_params.max_iterations = 50;
     lbfgs_params.min_step = 1e-32;
     // lbfgs_params.abs_curv_cond = 0;
     lbfgs_params.past = 3;
@@ -94,24 +94,24 @@ namespace ego_planner
           {
 
             flag_success = true;
-            PRINTF_COND("\033[32miter=%d,time(ms)=%5.3f,total_t(ms)=%5.3f,cost=%5.3f\n\033[0m", iter_num_, time_ms, total_time_ms, final_cost);
+            //PRINTF_COND("\033[32miter=%d,time(ms)=%5.3f,total_t(ms)=%5.3f,cost=%5.3f\n\033[0m", iter_num_, time_ms, total_time_ms, final_cost);
           }
           else
           {
             // A not-blank return value means collision to obstales
             flag_still_unsafe = true;
             restart_nums++;
-            PRINTF_COND("\033[32miter=%d,time(ms)=%5.3f, fine check collided, keep optimizing\n\033[0m", iter_num_, time_ms);
-            std::cout << "Reason: Collision with obstacles during fine check." << std::endl;
+            //PRINTF_COND("\033[32miter=%d,time(ms)=%5.3f, fine check collided, keep optimizing\n\033[0m", iter_num_, time_ms);
+            //std::cout << "Reason: Collision with obstacles during fine check." << std::endl;
           }
         }
         else
         {
-          PRINTF_COND("Swarm clearance not satisfied, keep optimizing. iter=%d,time(ms)=%5.3f, wei_swarm_mod_=%f\n", iter_num_, time_ms, wei_swarm_mod_);
+         // PRINTF_COND("Swarm clearance not satisfied, keep optimizing. iter=%d,time(ms)=%5.3f, wei_swarm_mod_=%f\n", iter_num_, time_ms, wei_swarm_mod_);
           flag_still_unsafe = true;
           restart_nums++;
           wei_swarm_mod_ *= 2;
-          std::cout << "Reason: Swarm clearance not satisfied." << std::endl;
+         //std::cout << "Reason: Swarm clearance not satisfied." << std::endl;
         }
       }
       else if (result == lbfgs::LBFGSERR_CANCELED)
@@ -119,13 +119,13 @@ namespace ego_planner
         flag_force_return = true;
         rebound_times++;
         PRINTF_COND("iter=%d, time(ms)=%f, rebound\n", iter_num_, time_ms);
-        std::cout << "Reason: Optimization canceled, rebound." << std::endl;
+        //std::cout << "Reason: Optimization canceled, rebound." << std::endl;
       }
       else
       {
         PRINTF_COND("iter=%d, time(ms)=%f, error\n", iter_num_, time_ms);
-        ROS_WARN_COND(VERBOSE_OUTPUT, "Solver error. Return = %d, %s. Skip this planning.", result, lbfgs::lbfgs_strerror(result));
-        std::cout << "Reason: Solver error. Return = " << result << ", " << lbfgs::lbfgs_strerror(result) << std::endl;
+        //ROS_WARN_COND(VERBOSE_OUTPUT, "Solver error. Return = %d, %s. Skip this planning.", result, lbfgs::lbfgs_strerror(result));
+        //std::cout << "Reason: Solver error. Return = " << result << ", " << lbfgs::lbfgs_strerror(result) << std::endl;
       }
 
     } while ((flag_still_unsafe && restart_nums < 3) ||
@@ -1390,7 +1390,7 @@ namespace ego_planner
         alpha = 1.0 / K * j;
         vel = jerkOpt_.get_b().block<6, 3>(i * 6, 0).transpose() * beta1;
 
-        omg = (j == 0 || j == K) ? 0.5 : 1.0;
+        omg = (j == 0 || j == K) ? 1: 1.0;
 
         gradViolaPc = beta0 * gdp.col(i_dp).transpose();
         gradViolaPt = alpha * gdp.col(i_dp).transpose() * vel;

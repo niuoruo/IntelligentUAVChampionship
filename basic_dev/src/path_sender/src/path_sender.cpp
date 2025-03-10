@@ -76,7 +76,7 @@ PathSender::PathSender(ros::NodeHandle *nh)
 {  
 
     POintSet();
-    paths=loadPathsFromYAML(std::string("/basic_dev/src/path_sender/config/paths.yaml"));
+    paths=loadPathsFromYAML(std::string("/home/jsj/nnn/IntelligentUAVChampionship/basic_dev/src/path_sender/config/paths.yaml"));
     //无人机信息通过如下命令订阅，当收到消息时自动回调对应的函数
     initial_pose_suber = nh->subscribe<geometry_msgs::PoseStamped>("/airsim_node/initial_pose", 1, std::bind(&PathSender::initial_pose_cb, this, std::placeholders::_1));//状态真值，用于赛道一
     end_pose_suber = nh->subscribe<geometry_msgs::PoseStamped>("/airsim_node/end_goal", 1, std::bind(&PathSender::end_pose_cb, this, std::placeholders::_1));//状态真值，用于赛道一

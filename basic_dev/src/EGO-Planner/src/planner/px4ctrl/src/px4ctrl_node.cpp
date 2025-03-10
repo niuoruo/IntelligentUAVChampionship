@@ -9,7 +9,7 @@
 //#include <geometry_msgs/Vector3Stamped.h>
 #include <signal.h>
 #include "std_msgs/Float32.h"
-
+#include "airsim_ros/VelCmd.h"
 PX4CtrlFSM* pFSM;
 
 void mySigintHandler(int sig) {
@@ -64,6 +64,8 @@ int main(int argc, char* argv[]) {
                                          ros::TransportHints().tcpNoDelay());
     fsm.controller.ctrl_FCU_pub = nh.advertise<mavros_msgs::AttitudeTarget>("/setpoint_raw/attitude", 10);
     fsm.controller.ctrl_PWM_pub = nh.advertise<airsim_ros::RotorPWM>("/airsim_node/drone_1/rotor_pwm_cmd", 10);
+    fsm.controller.vel_pub = nh.advertise<airsim_ros::VelCmd>("/airsim_node/drone_1/vel_cmd_body_frame", 10);    
+    fsm.controller.pose_sub = nh.subscribe<geometry_msgs::PoseStamped>("/airsim_node/drone_1/debug/pose_gt", 10, &Controller::pose_cb, &fsm.controller);
     // fsm.controller.debug_roll_pub = nh.advertise<std_msgs::Float32>("/debug_roll",10);
     // fsm.controller.debug_pitch_pub = nh.advertise<std_msgs::Float32>("/debug_pitch",10);
     // fsm.traj_start_trigger_pub = nh.advertise<geometry_msgs::PoseStamped>("/traj_start_trigger", 10);
